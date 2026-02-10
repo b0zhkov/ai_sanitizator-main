@@ -1,5 +1,7 @@
 import os
-
+from bs4 import BeautifulSoup
+import docx2txt
+from pypdf import PdfReader
 
 def _load_txt(file_path: str) -> str:
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -7,19 +9,31 @@ def _load_txt(file_path: str) -> str:
 
 
 def _load_docx(file_path: str) -> str:
-    import docx2txt
     return docx2txt.process(file_path)
 
 
 def _load_html(file_path: str) -> str:
-    from bs4 import BeautifulSoup
     with open(file_path, 'r', encoding='utf-8') as f:
         soup = BeautifulSoup(f.read(), 'html.parser')
         return soup.get_text(separator='\n', strip=True)
 
+def html_specific_content(html_input: str) -> list[dict]:
+    soup = BeautifulSoup(html_input, "html.parser")
+    
+    structured_data = []
+    
+    for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']):
+        element_type = "heading" if tag.name.startswith('h') else "body"
+        
+        structured_data.append({
+            "type": element_type,
+            "tag": tag.name,
+            "content": tag.get_text().strip()
+        })
+        
+    return structured_data
 
 def _load_pdf(file_path: str) -> str:
-    from pypdf import PdfReader
     reader = PdfReader(file_path)
     pages = [page.extract_text() or '' for page in reader.pages]
     return '\n'.join(pages)

@@ -1,12 +1,21 @@
 import re
 import unicodedata
 
-_INVISIBLE_CHARS = re.compile(r'[\u200B-\u200D\uFEFF\u00A0]')
-_TRACKING_ARTIFACTS = re.compile(r'[\u202A-\u202E]')
-_INLINE_STYLES = re.compile(r'style=["\'][^"\']*["\']')
-_ASTERISKS = re.compile(r'\*')
-_TRAILING_WHITESPACE = re.compile(r'\s+$')
-_MARKDOWN_HEADINGS = re.compile(r'^\s*#+\s*')
+INVISIBLE_CHARS = re.compile(r'[\u200B-\u200D\uFEFF\u00A0]')
+TRACKING_ARTIFACTS = re.compile(r'[\u202A-\u202E]')
+INLINE_STYLES = re.compile(r'style=["\'][^"\']*["\']')
+ASTERISKS = re.compile(r'\*')
+TRAILING_WHITESPACE = re.compile(r'\s+$')
+MARKDOWN_HEADINGS = re.compile(r'^\s*#+\s*')
+
+PATTERNS = [
+    (INVISIBLE_CHARS, ''),
+    (TRACKING_ARTIFACTS, ''),
+    (INLINE_STYLES, ''),
+    (ASTERISKS, ''),
+    (TRAILING_WHITESPACE, ''),
+    (MARKDOWN_HEADINGS, '')
+]
 
 def validate_and_fix_encoding(text: str) -> str:
     if not text:
@@ -28,11 +37,11 @@ def sanitize_text(text: str) -> str:
 
     text = unicodedata.normalize('NFKC', text)
     text = validate_and_fix_encoding(text)
-    text = _INVISIBLE_CHARS.sub('', text)
-    text = _TRACKING_ARTIFACTS.sub('', text)
-    text = _INLINE_STYLES.sub('', text)
-    text = _ASTERISKS.sub('', text)
-    text = _TRAILING_WHITESPACE.sub('', text)
-    text = _MARKDOWN_HEADINGS.sub('', text)
+    text = INVISIBLE_CHARS.sub('', text)
+    text = TRACKING_ARTIFACTS.sub('', text)
+    text = INLINE_STYLES.sub('', text)
+    text = ASTERISKS.sub('', text)
+    text = TRAILING_WHITESPACE.sub('', text)
+    text = MARKDOWN_HEADINGS.sub('', text)
     
     return text

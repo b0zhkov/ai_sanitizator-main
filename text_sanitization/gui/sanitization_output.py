@@ -1,6 +1,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'changes-log'))
 from typing import Optional
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -13,19 +14,19 @@ from PyQt6.QtGui import QFont, QAction
 import document_loading
 import strip_inv_chars
 import normalizator
+from changes_log import build_changes_log
 
 class SanitizationApp(QMainWindow):
-    """
-    Main application window for the Text Sanitization Tool.
-    """
+
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Text Sanitizer Pro")
+        self.setWindowTitle("Text Sanitizer")
         self.setGeometry(100, 100, 1200, 800)
         self.setMinimumSize(1000, 700)
         
         self.raw_text: str = ""
         self.clean_text: str = ""
+        self.change_log: list = []
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -48,7 +49,6 @@ class SanitizationApp(QMainWindow):
         self.stack.setCurrentIndex(0)
 
     def _init_input_page(self):
-        """Page 1: Input Selection (Import or Paste)"""
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -56,7 +56,7 @@ class SanitizationApp(QMainWindow):
 
         lbl_instruction = QLabel("Select how you would like to input your text:")
         lbl_instruction.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl_instruction.setFont(QFont("Arial", 14))
+        lbl_instruction.setFont(QFont("Arial", 16))
         
         btn_container = QWidget()
         btn_layout = QHBoxLayout(btn_container)
@@ -77,7 +77,6 @@ class SanitizationApp(QMainWindow):
         self.stack.addWidget(page)
 
     def _init_preview_page(self):
-        """Page 2: Preview Loaded Text"""
         page = QWidget()
         layout = QVBoxLayout(page)
         
@@ -104,7 +103,6 @@ class SanitizationApp(QMainWindow):
         self.stack.addWidget(page)
 
     def _init_result_page(self):
-        """Page 3: Side-by-Side Comparison"""
         page = QWidget()
         layout = QVBoxLayout(page)
 
@@ -124,6 +122,16 @@ class SanitizationApp(QMainWindow):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
 
+        # --- Changes Log section ---
+        self.log_header = QLabel("Changes Log")
+        self.log_header.setFont(QFont("Arial", 13, QFont.Weight.Bold))
+
+        self.log_edit = QTextEdit()
+        self.log_edit.setReadOnly(True)
+        self.log_edit.setFont(QFont("Consolas", 11))
+        self.log_edit.setMaximumHeight(180)
+        self.log_edit.setPlaceholderText("No changes detected.")
+
         action_layout = QHBoxLayout()
         btn_copy = self._create_styled_button("Copy", self._handle_copy, "background-color: #2ecc71; color: white;")
         btn_new = self._create_styled_button("New Clean", self._handle_restart, "background-color: #3498db; color: white;")
@@ -137,6 +145,8 @@ class SanitizationApp(QMainWindow):
 
         layout.addWidget(lbl_header)
         layout.addWidget(splitter)
+        layout.addWidget(self.log_header)
+        layout.addWidget(self.log_edit)
         layout.addLayout(action_layout)
 
         self.page_result = page
@@ -214,11 +224,12 @@ class SanitizationApp(QMainWindow):
             return
 
         try:
-            sanitized = strip_inv_chars.sanitize_text(self.raw_text)
-            self.clean_text = normalizator.normalize_punctuation(sanitized)
+            # Changes log now handles the full pipeline
+            self.clean_text, self.change_log = build_changes_log(self.raw_text)
             
             self.before_edit['text_edit'].setText(self.raw_text)
             self.after_edit['text_edit'].setText(self.clean_text)
+            self._populate_changes_log()
             
             self.stack.setCurrentIndex(2)
             
@@ -235,12 +246,32 @@ class SanitizationApp(QMainWindow):
         clipboard.setText(self.clean_text)
         QMessageBox.information(self, "Success", "Cleaned text copied to clipboard!")
 
+    def _populate_changes_log(self):
+        """Format and display the list of changes in the log panel."""
+        if not self.change_log:
+            self.log_header.setText("Changes Log — no changes detected")
+            self.log_edit.clear()
+            return
+
+        count = len(self.change_log)
+        self.log_header.setText(f"Changes Log — {count} change{'s' if count != 1 else ''} detected")
+
+        lines = []
+        for i, entry in enumerate(self.change_log, 1):
+            # We use the description from the change entry which is more meaningful
+            lines.append(f"{i}. {entry.description}")
+
+        self.log_edit.setPlainText('\n'.join(lines))
+
     def _handle_restart(self):
         self.raw_text = ""
         self.clean_text = ""
+        self.change_log = []
         self.preview_edit.clear()
         self.before_edit['text_edit'].clear()
         self.after_edit['text_edit'].clear()
+        self.log_edit.clear()
+        self.log_header.setText("Changes Log")
         self.stack.setCurrentIndex(0)
 
 def main():

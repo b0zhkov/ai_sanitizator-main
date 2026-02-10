@@ -15,6 +15,8 @@ REPLACEMENT_MAP = {
 _KEYS = sorted(REPLACEMENT_MAP.keys(), key=len, reverse=True)
 _PATTERN = re.compile('|'.join(re.escape(k) for k in _KEYS))
 
+PATTERNS = [(re.escape(k), v) for k, v in REPLACEMENT_MAP.items()]
+
 def normalize_punctuation(text: str) -> str:
     if not text:
         return ""

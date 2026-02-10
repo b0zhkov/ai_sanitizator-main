@@ -1,22 +1,18 @@
 import numpy as np
 from repetition_detection import tokenize_text_into_sentences
 
-
-# Constants for threshold values (easy to tune)
 LOW_VARIANCE_THRESHOLD = 3.0
 HIGH_VARIANCE_THRESHOLD = 6.5
 
-# Result templates following DRY principle
 RESULT_TEMPLATES = {
-    'insufficient': ('Insufficient amount of sentences to run a test.', 'Neutral/Ambiguous', 'yellow'),
-    'uniform': ('Highly Uniform Sentences', 'STRONG AI PROBABILITY', 'red'),
-    'moderate': ('Moderately Varied Sentences', 'Neutral/Ambiguous', 'yellow'),
-    'burstive': ('Highly Burstive Sentences', 'LIKELY HUMAN', 'green'),
+    'insufficient': ('Insufficient amount of sentences to run a test.', 'Neutral', 'white'),
+    'uniform': ('Highly Uniform Sentences', 'Likely AI', 'red'),
+    'moderate': ('Moderately Varied Sentences', 'Neutral', 'yellow'),
+    'burstive': ('Highly Burstive Sentences', 'Likely human', 'green'),
 }
 
 
 def _build_result(score: float, template_key: str) -> dict:
-    """Helper to build result dict from template (DRY)."""
     judgment, signal, color = RESULT_TEMPLATES[template_key]
     return {
         'score': score,
@@ -27,7 +23,6 @@ def _build_result(score: float, template_key: str) -> dict:
 
 
 def _classify_variance(std_dev: float) -> str:
-    """Classifies the standard deviation into a category (SRP)."""
     if std_dev < LOW_VARIANCE_THRESHOLD:
         return 'uniform'
     elif std_dev < HIGH_VARIANCE_THRESHOLD:
@@ -36,7 +31,6 @@ def _classify_variance(std_dev: float) -> str:
 
 
 def uniform_sentence_check(text: str) -> dict:
-    """Analyzes sentence length uniformity to detect AI-generated text."""
     sentences = tokenize_text_into_sentences(text)
     words_per_sentence = [len(sentence.split()) for sentence in sentences]
 
