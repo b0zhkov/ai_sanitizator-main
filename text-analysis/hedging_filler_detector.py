@@ -1,29 +1,42 @@
 import os
 import sys
-import spacy
 import pandas as pd
-from spacy.matcher import PhraseMatcher
-
 
 import clean_text_getter
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-nlp = spacy.load("en_core_web_sm")
-df = pd.read_csv("excess_words.csv")
+# Global variables for lazy loading
+nlp = None
+matcher = None
+style_words = None
+content_words = None
 
-style_words = df[df['type'] == 'style']['word'].tolist()
-content_words = df[df['type'] == 'content']['word'].tolist()
+def _initialize_spacy():
+    global nlp, matcher, style_words, content_words
+    if nlp is not None:
+        return
 
-matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+    import spacy
+    from spacy.matcher import PhraseMatcher
 
-style_patterns = [nlp.make_doc(text) for text in style_words]
-matcher.add("AI_FILLER", style_patterns)
+    nlp = spacy.load("en_core_web_sm")
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), "excess_words.csv"))
+
+    style_words = df[df['type'] == 'style']['word'].tolist()
+    content_words = df[df['type'] == 'content']['word'].tolist()
+
+    matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+
+    style_patterns = [nlp.make_doc(text) for text in style_words]
+    matcher.add("AI_FILLER", style_patterns)
 
 def load_and_clean_text(file_path: str) -> str:
     return clean_text_getter.get_clean_text_from_file(file_path)
 
 def analyze_and_filter_out(text: str):
+    _initialize_spacy()
+    
     doc = nlp(text)
     matches = matcher(doc)
     

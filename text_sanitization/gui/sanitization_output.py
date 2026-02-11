@@ -2,6 +2,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'changes-log'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'text-analysis')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'text-rewriting')))
 from typing import Optional
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -10,11 +12,12 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QAction
-
 import document_loading
 import strip_inv_chars
 import normalizator
 from changes_log import build_changes_log
+import llm_validator
+from rewriting_agent import rewriting_agent
 
 class SanitizationApp(QMainWindow):
 
@@ -87,17 +90,20 @@ class SanitizationApp(QMainWindow):
         self.preview_edit.setReadOnly(True)
         self.preview_edit.setPlaceholderText("No text loaded...")
         
-        btn_layout = QHBoxLayout()
-        btn_back = self._create_styled_button("Back", self._go_to_input, "background-color: #95a5a6; color: white;", width=120)
-        btn_clean = self._create_styled_button("Clean Text", self._handle_clean, "background-color: #e74c3c; color: white;", width=150)
+        btn_container = QWidget()
+        btn_layout = QHBoxLayout(btn_container)
+        self.btn_clean_only = self._create_styled_button("Clean Only", self._handle_clean, "background-color: #f39c12; color: white;", width=150)
+        self.btn_clean_rewrite = self._create_styled_button("Clean + Rewrite", self._handle_clean_and_rewrite, "background-color: #e74c3c; color: white;", width=180)
+        self.btn_back = self._create_styled_button("Back", self._go_to_input, "background-color: #95a5a6; color: white;", width=120)
         
         btn_layout.addStretch()
-        btn_layout.addWidget(btn_back)
-        btn_layout.addWidget(btn_clean)
+        btn_layout.addWidget(self.btn_back)
+        btn_layout.addWidget(self.btn_clean_only)
+        btn_layout.addWidget(self.btn_clean_rewrite)
         
         layout.addWidget(lbl_header)
         layout.addWidget(self.preview_edit)
-        layout.addLayout(btn_layout)
+        layout.addWidget(btn_container)
 
         self.page_preview = page
         self.stack.addWidget(page)
@@ -132,22 +138,23 @@ class SanitizationApp(QMainWindow):
         self.log_edit.setMaximumHeight(180)
         self.log_edit.setPlaceholderText("No changes detected.")
 
-        action_layout = QHBoxLayout()
-        btn_copy = self._create_styled_button("Copy", self._handle_copy, "background-color: #2ecc71; color: white;")
-        btn_new = self._create_styled_button("New Clean", self._handle_restart, "background-color: #3498db; color: white;")
-        btn_close = self._create_styled_button("Close", self.close, "background-color: #7f8c8d; color: white;")
+        action_container = QWidget()
+        action_layout = QHBoxLayout(action_container)
+        self.btn_copy = self._create_styled_button("Copy", self._handle_copy, "background-color: #2ecc71; color: white;")
+        self.btn_new = self._create_styled_button("New Clean", self._handle_restart, "background-color: #3498db; color: white;")
+        self.btn_close = self._create_styled_button("Close", self.close, "background-color: #7f8c8d; color: white;")
         
         action_layout.addStretch()
-        action_layout.addWidget(btn_copy)
-        action_layout.addWidget(btn_new)
-        action_layout.addWidget(btn_close)
+        action_layout.addWidget(self.btn_copy)
+        action_layout.addWidget(self.btn_new)
+        action_layout.addWidget(self.btn_close)
         action_layout.addStretch()
 
         layout.addWidget(lbl_header)
         layout.addWidget(splitter)
         layout.addWidget(self.log_header)
         layout.addWidget(self.log_edit)
-        layout.addLayout(action_layout)
+        layout.addWidget(action_container)
 
         self.page_result = page
         self.stack.addWidget(page)
@@ -211,6 +218,7 @@ class SanitizationApp(QMainWindow):
             return
 
         self.raw_text = text
+        print(f"DEBUG: Loaded text. Length: {len(self.raw_text)}")
         self.preview_edit.setText(text)
         self.stack.setCurrentIndex(1)
 
@@ -220,10 +228,13 @@ class SanitizationApp(QMainWindow):
         self.preview_edit.clear()
 
     def _handle_clean(self):
+        print(f"DEBUG: Clean button clicked. raw_text length: {len(self.raw_text)}")
         if not self.raw_text:
+            print("DEBUG: raw_text is empty, returning.")
             return
 
         try:
+            print("DEBUG: Starting build_changes_log...")
             # Changes log now handles the full pipeline
             self.clean_text, self.change_log = build_changes_log(self.raw_text)
             
@@ -235,6 +246,45 @@ class SanitizationApp(QMainWindow):
             
         except Exception as e:
             QMessageBox.critical(self, "Cleaning Error", f"An error occurred during sanitization:\n{str(e)}")
+
+    def _handle_clean_and_rewrite(self):
+        print(f"DEBUG: Clean+Rewrite button clicked. raw_text length: {len(self.raw_text)}")
+        if not self.raw_text:
+            print("DEBUG: raw_text is empty, returning.")
+            return
+
+        try:
+            # 1. Sanitize
+            sanitized_text, changes = build_changes_log(self.raw_text)
+            
+            # 2. Analyze
+            analysis = llm_validator.validate_text(sanitized_text)
+            if "error" in analysis:
+                raise Exception(f"Analysis failed: {analysis['error']}")
+                
+            # 3. Rewrite
+            rewritten_text = rewriting_agent.rewrite(sanitized_text, analysis)
+            
+            # Update results
+            self.clean_text = rewritten_text
+            self.change_log = changes
+            
+            # Add rewriting entry to log
+            from changes_log import Change
+            self.change_log.append(Change(
+                description="Applied AI Rewriting (Clean + Rewrite)",
+                text_before=sanitized_text,
+                text_after=rewritten_text
+            ))
+
+            self.before_edit['text_edit'].setText(self.raw_text)
+            self.after_edit['text_edit'].setText(self.clean_text)
+            self._populate_changes_log()
+            
+            self.stack.setCurrentIndex(2)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Processing Error", f"An error occurred during processing:\n{str(e)}")
 
 
     def _handle_copy(self):
@@ -274,7 +324,14 @@ class SanitizationApp(QMainWindow):
         self.log_header.setText("Changes Log")
         self.stack.setCurrentIndex(0)
 
+def _exception_hook(exc_type, exc_value, exc_tb):
+    """Ensure exceptions in PyQt6 slots are printed instead of silently swallowed."""
+    import traceback
+    traceback.print_exception(exc_type, exc_value, exc_tb)
+
 def main():
+    sys.excepthook = _exception_hook
+    
     app = QApplication(sys.argv)
     
     app.setStyle("Breeze")
