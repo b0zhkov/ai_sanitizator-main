@@ -20,7 +20,7 @@ import llm_validator
 from rewriting_agent import rewriting_agent
 
 class Worker(QObject):
-    finished = pyqtSignal(str, list)
+    finished = pyqtSignal(str, list, float)
     error = pyqtSignal(str)
     progress_chunk = pyqtSignal(str)
 
@@ -53,7 +53,10 @@ class Worker(QObject):
                 text_after=rewritten_text
             ))
             
-            self.finished.emit(rewritten_text, changes)
+            llm_critique = analysis.get("llm_critique", {})
+            ai_score = llm_critique.get("ai_score", 0.0)
+
+            self.finished.emit(rewritten_text, changes, ai_score)
         except Exception as e:
             self.error.emit(str(e))
 
@@ -177,6 +180,11 @@ class SanitizationApp(QMainWindow):
         lbl_header.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
         lbl_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        self.lbl_ai_score = QLabel("AI Score: --/10")
+        self.lbl_ai_score.setFont(QFont("Consolas", 14, QFont.Weight.Bold))
+        self.lbl_ai_score.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_ai_score.setStyleSheet("color: #7f8c8d;")
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
         
         self.before_edit = self._create_labeled_textarea("Original Text")
@@ -211,6 +219,7 @@ class SanitizationApp(QMainWindow):
         action_layout.addStretch()
 
         layout.addWidget(lbl_header)
+        layout.addWidget(self.lbl_ai_score)
         layout.addWidget(splitter)
         layout.addWidget(self.log_header)
         layout.addWidget(self.log_edit)
@@ -299,6 +308,8 @@ class SanitizationApp(QMainWindow):
             
             self.before_edit['text_edit'].setText(self.raw_text)
             self.after_edit['text_edit'].setText(self.clean_text)
+            self.lbl_ai_score.setText("AI Score: --/10")
+            self.lbl_ai_score.setStyleSheet("color: #7f8c8d;")
             self._populate_changes_log()
             
             self.stack.setCurrentIndex(2)
@@ -327,6 +338,10 @@ class SanitizationApp(QMainWindow):
 
         self.before_edit['text_edit'].setText(self.raw_text)
         self.after_edit['text_edit'].clear()
+        
+        self.lbl_ai_score.setText("AI Score: --/10")
+        self.lbl_ai_score.setStyleSheet("color: #7f8c8d;")
+        
         self.stack.setCurrentIndex(2)
         
         self.worker.error.connect(self._on_worker_error)
@@ -342,9 +357,18 @@ class SanitizationApp(QMainWindow):
         self.after_edit['text_edit'].setTextCursor(cursor)
         self.after_edit['text_edit'].ensureCursorVisible()
 
-    def _on_worker_finished(self, clean_text, changes):
+    def _on_worker_finished(self, clean_text, changes, ai_score):
         self.clean_text = clean_text
         self.change_log = changes
+        
+        self.lbl_ai_score.setText(f"AI Score: {ai_score}/10")
+        
+        if ai_score >= 7.0:
+            self.lbl_ai_score.setStyleSheet("color: #c0392b; font-weight: bold;")
+        elif ai_score >= 4.0:
+            self.lbl_ai_score.setStyleSheet("color: #e67e22; font-weight: bold;")
+        else:
+            self.lbl_ai_score.setStyleSheet("color: #27ae60; font-weight: bold;")
         
         self.after_edit['text_edit'].setText(self.clean_text)
         self._populate_changes_log()
@@ -400,6 +424,11 @@ class SanitizationApp(QMainWindow):
         self.after_edit['text_edit'].clear()
         self.log_edit.clear()
         self.log_header.setText("Changes Log")
+        
+        if hasattr(self, 'lbl_ai_score'):
+            self.lbl_ai_score.setText("AI Score: --/10")
+            self.lbl_ai_score.setStyleSheet("color: #7f8c8d;")
+            
         self.stack.setCurrentIndex(0)
 
 def _exception_hook(exc_type, exc_value, exc_tb):

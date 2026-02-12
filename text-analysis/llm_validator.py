@@ -19,7 +19,7 @@ class CritiqueSchema(BaseModel):
     validation_of_stats: dict = Field(description="Verification of the algorithmically detected hedging, repetition, and variance.")
     stylistic_issues: list[str] = Field(description="Specific AI-like stylistic issues found in the text.")
     recommended_actions: list[str] = Field(description="Steps to take during the rewriting phase.")
-    overall_score: int = Field(description="Quality score from 1-10.")
+    ai_score: float = Field(description="Score from 1.0 (Human-written) to 10.0 (AI-generated). Use decimals for precision.")
 
 def validate_text(text: str) -> dict:
     stats = {}
