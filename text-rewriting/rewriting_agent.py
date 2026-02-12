@@ -29,4 +29,17 @@ class RewritingAgent:
         except Exception as e:
             return f"Error during rewriting: {str(e)}"
 
+    def stream_rewrite(self, text: str, analysis: dict):
+        try:
+            analysis_str = json.dumps(analysis, indent=2)
+            
+            # Use chain.stream to get a generator of chunks
+            for chunk in self.chain.stream({
+                "text": text,
+                "analysis": analysis_str
+            }):
+                yield chunk
+        except Exception as e:
+            yield f"Error during rewriting: {str(e)}"
+
 rewriting_agent = RewritingAgent()

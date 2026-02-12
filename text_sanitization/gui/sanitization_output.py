@@ -8,10 +8,10 @@ from typing import Optional
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QTextEdit, QFileDialog, QMessageBox,
-    QStackedWidget, QInputDialog, QSplitter, QFrame
+    QStackedWidget, QInputDialog, QSplitter, QFrame, QGraphicsOpacityEffect
 )
-from PyQt6.QtCore import Qt, QSize, QThread, QObject, pyqtSignal
-from PyQt6.QtGui import QFont, QAction
+from PyQt6.QtCore import Qt, QSize, QThread, QObject, QPropertyAnimation, QEasingCurve,pyqtSignal
+from PyQt6.QtGui import QFont, QAction, QIcon
 import document_loading
 import strip_inv_chars
 import normalizator
@@ -22,6 +22,7 @@ from rewriting_agent import rewriting_agent
 class Worker(QObject):
     finished = pyqtSignal(str, list)
     error = pyqtSignal(str)
+    progress_chunk = pyqtSignal(str)
 
     def __init__(self, raw_text):
         super().__init__()
@@ -37,8 +38,13 @@ class Worker(QObject):
             if "error" in analysis:
                 raise Exception(f"Analysis failed: {analysis['error']}")
                 
-            # 3. Rewrite
-            rewritten_text = rewriting_agent.rewrite(sanitized_text, analysis)
+            # 3. Rewrite (with Streaming)
+            rewritten_text_chunks = []
+            for chunk in rewriting_agent.stream_rewrite(sanitized_text, analysis):
+                self.progress_chunk.emit(chunk)
+                rewritten_text_chunks.append(chunk)
+
+            rewritten_text = "".join(rewritten_text_chunks)
             
             # Add rewriting entry to log
             changes.append(Change(
@@ -55,7 +61,7 @@ class SanitizationApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Text Sanitizer")
+        self.setWindowTitle("Text Sanitizer and Rewriter")
         self.setGeometry(100, 100, 1200, 800)
         self.setMinimumSize(1000, 700)
         
@@ -69,10 +75,22 @@ class SanitizationApp(QMainWindow):
         self.main_layout.setContentsMargins(20, 20, 20, 20)
         self.main_layout.setSpacing(20)
 
-        self.header_label = QLabel("Text Sanitizer Tool")
+        self.header_label = QLabel("Text Sanitizer")
         self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.header_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+        header_font = QFont("Roboto", 28)
+        header_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 8)
+        self.header_label.setFont(header_font)
         self.main_layout.addWidget(self.header_label)
+
+        self.opacity_effect = QGraphicsOpacityEffect(self.header_label)
+        self.header_label.setGraphicsEffect(self.opacity_effect)
+        
+        self.opacity_animation = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.opacity_animation.setDuration(1500)
+        self.opacity_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.opacity_animation.setStartValue(0.0)
+        self.opacity_animation.setEndValue(1.0)
+        self.opacity_animation.start()
 
         self.stack = QStackedWidget()
         self.main_layout.addWidget(self.stack)
@@ -91,16 +109,25 @@ class SanitizationApp(QMainWindow):
 
         lbl_instruction = QLabel("Select how you would like to input your text:")
         lbl_instruction.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl_instruction.setFont(QFont("Arial", 16))
-        
+        lbl_instruction.setFont(QFont("Helvetica", 16))
+
         btn_container = QWidget()
         btn_layout = QHBoxLayout(btn_container)
         btn_layout.setSpacing(20)
         btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        btn_import = self._create_styled_button("Import File", self._handle_import, "background-color: #3498db; color: white;")
+        import_icon = QIcon("assets/folder-plus-circle.png")
+        paste_icon = QIcon("assets/clipboard.png")
+
+        btn_import = self._create_styled_button("   Import File", self._handle_import, "background-color: #3498db; color: white; text-align: left; padding-left: 20px;")
         
-        btn_paste = self._create_styled_button("Paste Text", self._handle_paste, "background-color: #2ecc71; color: white;")
+        btn_paste = self._create_styled_button("   Paste Text", self._handle_paste, "background-color: #2ecc71; color: white; text-align: left; padding-left: 20px;")
+        
+        btn_import.setIcon(import_icon)
+        btn_import.setIconSize(QSize(24, 24))
+
+        btn_paste.setIcon(paste_icon)
+        btn_paste.setIconSize(QSize(24, 24))
 
         btn_layout.addWidget(btn_import)
         btn_layout.addWidget(btn_paste)
@@ -116,9 +143,11 @@ class SanitizationApp(QMainWindow):
         layout = QVBoxLayout(page)
         
         lbl_header = QLabel("Preview Loaded Text")
-        lbl_header.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        lbl_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_header.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
         
         self.preview_edit = QTextEdit()
+        self.preview_edit.setFont(QFont("Consolas", 14))
         self.preview_edit.setReadOnly(True)
         self.preview_edit.setPlaceholderText("No text loaded...")
         
@@ -128,7 +157,7 @@ class SanitizationApp(QMainWindow):
         self.btn_clean_rewrite = self._create_styled_button("Clean + Rewrite", self._handle_clean_and_rewrite, "background-color: #e74c3c; color: white;", width=180)
         self.btn_back = self._create_styled_button("Back", self._go_to_input, "background-color: #95a5a6; color: white;", width=120)
         
-        btn_layout.addStretch()
+        btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         btn_layout.addWidget(self.btn_back)
         btn_layout.addWidget(self.btn_clean_only)
         btn_layout.addWidget(self.btn_clean_rewrite)
@@ -145,7 +174,7 @@ class SanitizationApp(QMainWindow):
         layout = QVBoxLayout(page)
 
         lbl_header = QLabel("Sanitization Results: Before vs After")
-        lbl_header.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        lbl_header.setFont(QFont("Helvetica", 16, QFont.Weight.Bold))
         lbl_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -160,9 +189,8 @@ class SanitizationApp(QMainWindow):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
 
-        # --- Changes Log section ---
         self.log_header = QLabel("Changes Log")
-        self.log_header.setFont(QFont("Arial", 13, QFont.Weight.Bold))
+        self.log_header.setFont(QFont("Helvetica", 13, QFont.Weight.Bold))
 
         self.log_edit = QTextEdit()
         self.log_edit.setReadOnly(True)
@@ -195,7 +223,7 @@ class SanitizationApp(QMainWindow):
         btn = QPushButton(text)
         btn.clicked.connect(callback)
         btn.setFixedSize(width, height)
-        btn.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        btn.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
         btn.setStyleSheet(f"""
             QPushButton {{
                 {style}
@@ -214,7 +242,7 @@ class SanitizationApp(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         
         label = QLabel(label_text)
-        label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        label.setFont(QFont("Helvetica", 12, QFont.Weight.Bold))
         
         text_edit = QTextEdit()
         text_edit.setReadOnly(True)
@@ -284,40 +312,43 @@ class SanitizationApp(QMainWindow):
             print("DEBUG: raw_text is empty, returning.")
             return
 
-        # Disable UI elements to prevent user interaction during processing
         self._set_loading_state(True)
 
-        # Step 2: Create a QThread object
         self.thread = QThread()
-        # Step 3: Create a worker object
         self.worker = Worker(self.raw_text)
-        # Step 4: Move worker to the thread
         self.worker.moveToThread(self.thread)
         
-        # Step 5: Connect signals and slots
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self._on_worker_finished)
+        self.worker.progress_chunk.connect(self._on_chunk_received)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
+
+        self.before_edit['text_edit'].setText(self.raw_text)
+        self.after_edit['text_edit'].clear()
+        self.stack.setCurrentIndex(2)
         
-        # Handle errors
         self.worker.error.connect(self._on_worker_error)
         self.worker.error.connect(self.thread.quit)
         self.worker.error.connect(self.worker.deleteLater)
         
-        # Step 6: Start the thread
         self.thread.start()
+
+    def _on_chunk_received(self, chunk):
+        cursor = self.after_edit['text_edit'].textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText(chunk)
+        self.after_edit['text_edit'].setTextCursor(cursor)
+        self.after_edit['text_edit'].ensureCursorVisible()
 
     def _on_worker_finished(self, clean_text, changes):
         self.clean_text = clean_text
         self.change_log = changes
         
-        self.before_edit['text_edit'].setText(self.raw_text)
         self.after_edit['text_edit'].setText(self.clean_text)
         self._populate_changes_log()
         
-        self.stack.setCurrentIndex(2)
         self._set_loading_state(False)
 
     def _on_worker_error(self, error_msg):
@@ -325,7 +356,6 @@ class SanitizationApp(QMainWindow):
         QMessageBox.critical(self, "Processing Error", f"An error occurred:\n{error_msg}")
 
     def _set_loading_state(self, is_loading: bool):
-        """Enable or disable buttons during processing."""
         self.btn_clean_only.setEnabled(not is_loading)
         self.btn_clean_rewrite.setEnabled(not is_loading)
         self.btn_back.setEnabled(not is_loading)
@@ -347,7 +377,6 @@ class SanitizationApp(QMainWindow):
         QMessageBox.information(self, "Success", "Cleaned text copied to clipboard!")
 
     def _populate_changes_log(self):
-        """Format and display the list of changes in the log panel."""
         if not self.change_log:
             self.log_header.setText("Changes Log — no changes detected")
             self.log_edit.clear()
@@ -358,7 +387,6 @@ class SanitizationApp(QMainWindow):
 
         lines = []
         for i, entry in enumerate(self.change_log, 1):
-            # We use the description from the change entry which is more meaningful
             lines.append(f"{i}. {entry.description}")
 
         self.log_edit.setPlainText('\n'.join(lines))
@@ -375,7 +403,7 @@ class SanitizationApp(QMainWindow):
         self.stack.setCurrentIndex(0)
 
 def _exception_hook(exc_type, exc_value, exc_tb):
-    """Ensure exceptions in PyQt6 slots are printed instead of silently swallowed."""
+
     import traceback
     traceback.print_exception(exc_type, exc_value, exc_tb)
 
