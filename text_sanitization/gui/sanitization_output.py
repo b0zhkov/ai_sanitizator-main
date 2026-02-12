@@ -10,14 +10,46 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QTextEdit, QFileDialog, QMessageBox,
     QStackedWidget, QInputDialog, QSplitter, QFrame
 )
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QThread, QObject, pyqtSignal
 from PyQt6.QtGui import QFont, QAction
 import document_loading
 import strip_inv_chars
 import normalizator
-from changes_log import build_changes_log
+from changes_log import build_changes_log, Change
 import llm_validator
 from rewriting_agent import rewriting_agent
+
+class Worker(QObject):
+    finished = pyqtSignal(str, list)
+    error = pyqtSignal(str)
+
+    def __init__(self, raw_text):
+        super().__init__()
+        self.raw_text = raw_text
+
+    def run(self):
+        try:
+            # 1. Sanitize
+            sanitized_text, changes = build_changes_log(self.raw_text)
+            
+            # 2. Analyze
+            analysis = llm_validator.validate_text(sanitized_text)
+            if "error" in analysis:
+                raise Exception(f"Analysis failed: {analysis['error']}")
+                
+            # 3. Rewrite
+            rewritten_text = rewriting_agent.rewrite(sanitized_text, analysis)
+            
+            # Add rewriting entry to log
+            changes.append(Change(
+                description="Applied AI Rewriting (Clean + Rewrite)",
+                text_before=sanitized_text,
+                text_after=rewritten_text
+            ))
+            
+            self.finished.emit(rewritten_text, changes)
+        except Exception as e:
+            self.error.emit(str(e))
 
 class SanitizationApp(QMainWindow):
 
@@ -235,7 +267,6 @@ class SanitizationApp(QMainWindow):
 
         try:
             print("DEBUG: Starting build_changes_log...")
-            # Changes log now handles the full pipeline
             self.clean_text, self.change_log = build_changes_log(self.raw_text)
             
             self.before_edit['text_edit'].setText(self.raw_text)
@@ -253,38 +284,57 @@ class SanitizationApp(QMainWindow):
             print("DEBUG: raw_text is empty, returning.")
             return
 
-        try:
-            # 1. Sanitize
-            sanitized_text, changes = build_changes_log(self.raw_text)
-            
-            # 2. Analyze
-            analysis = llm_validator.validate_text(sanitized_text)
-            if "error" in analysis:
-                raise Exception(f"Analysis failed: {analysis['error']}")
-                
-            # 3. Rewrite
-            rewritten_text = rewriting_agent.rewrite(sanitized_text, analysis)
-            
-            # Update results
-            self.clean_text = rewritten_text
-            self.change_log = changes
-            
-            # Add rewriting entry to log
-            from changes_log import Change
-            self.change_log.append(Change(
-                description="Applied AI Rewriting (Clean + Rewrite)",
-                text_before=sanitized_text,
-                text_after=rewritten_text
-            ))
+        # Disable UI elements to prevent user interaction during processing
+        self._set_loading_state(True)
 
-            self.before_edit['text_edit'].setText(self.raw_text)
-            self.after_edit['text_edit'].setText(self.clean_text)
-            self._populate_changes_log()
-            
-            self.stack.setCurrentIndex(2)
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Processing Error", f"An error occurred during processing:\n{str(e)}")
+        # Step 2: Create a QThread object
+        self.thread = QThread()
+        # Step 3: Create a worker object
+        self.worker = Worker(self.raw_text)
+        # Step 4: Move worker to the thread
+        self.worker.moveToThread(self.thread)
+        
+        # Step 5: Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self._on_worker_finished)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        
+        # Handle errors
+        self.worker.error.connect(self._on_worker_error)
+        self.worker.error.connect(self.thread.quit)
+        self.worker.error.connect(self.worker.deleteLater)
+        
+        # Step 6: Start the thread
+        self.thread.start()
+
+    def _on_worker_finished(self, clean_text, changes):
+        self.clean_text = clean_text
+        self.change_log = changes
+        
+        self.before_edit['text_edit'].setText(self.raw_text)
+        self.after_edit['text_edit'].setText(self.clean_text)
+        self._populate_changes_log()
+        
+        self.stack.setCurrentIndex(2)
+        self._set_loading_state(False)
+
+    def _on_worker_error(self, error_msg):
+        self._set_loading_state(False)
+        QMessageBox.critical(self, "Processing Error", f"An error occurred:\n{error_msg}")
+
+    def _set_loading_state(self, is_loading: bool):
+        """Enable or disable buttons during processing."""
+        self.btn_clean_only.setEnabled(not is_loading)
+        self.btn_clean_rewrite.setEnabled(not is_loading)
+        self.btn_back.setEnabled(not is_loading)
+        if is_loading:
+            self.btn_clean_rewrite.setText("Processing...")
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        else:
+            self.btn_clean_rewrite.setText("Clean + Rewrite")
+            QApplication.restoreOverrideCursor()
 
 
     def _handle_copy(self):
@@ -328,6 +378,8 @@ def _exception_hook(exc_type, exc_value, exc_tb):
     """Ensure exceptions in PyQt6 slots are printed instead of silently swallowed."""
     import traceback
     traceback.print_exception(exc_type, exc_value, exc_tb)
+
+
 
 def main():
     sys.excepthook = _exception_hook
