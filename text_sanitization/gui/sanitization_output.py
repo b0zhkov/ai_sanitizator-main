@@ -40,9 +40,16 @@ class Worker(QObject):
                 
             # 3. Rewrite (with Streaming)
             rewritten_text_chunks = []
-            for chunk in rewriting_agent.stream_rewrite(sanitized_text, analysis):
-                self.progress_chunk.emit(chunk)
-                rewritten_text_chunks.append(chunk)
+            try:
+                for chunk in rewriting_agent.stream_rewrite(sanitized_text, analysis):
+                    if chunk and isinstance(chunk, str):
+                        self.progress_chunk.emit(chunk)
+                        rewritten_text_chunks.append(chunk)
+            except Exception as stream_err:
+                print(f"Streaming error: {stream_err}")
+                error_note = "\n[Error: Text generation interrupted]"
+                self.progress_chunk.emit(error_note)
+                rewritten_text_chunks.append(error_note)
 
             rewritten_text = "".join(rewritten_text_chunks)
             
@@ -308,8 +315,8 @@ class SanitizationApp(QMainWindow):
             
             self.before_edit['text_edit'].setText(self.raw_text)
             self.after_edit['text_edit'].setText(self.clean_text)
-            self.lbl_ai_score.setText("AI Score: --/10")
-            self.lbl_ai_score.setStyleSheet("color: #7f8c8d;")
+            self.lbl_ai_score.setText("")
+            self.lbl_ai_score.setStyleSheet("")
             self._populate_changes_log()
             
             self.stack.setCurrentIndex(2)

@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+import csv
 
 sys.path.append(os.path.dirname(__file__))
 import hedging_filler_detector as hedging
@@ -27,6 +28,7 @@ def validate_text(text: str) -> dict:
     stats['hedging'] = _analyze_hedging(text)
     stats['repetition'] = _analyze_repetition(text)
     stats['sentence_variance'] = _analyze_sentence_variance(text)
+    stats['flagged_words'] = _check_excess_words(text)
 
     llm_response = _get_llm_critique(text, stats)
     
@@ -57,6 +59,29 @@ def _analyze_sentence_variance(text: str) -> dict:
         return uniform.uniform_sentence_check(text)
     except Exception as e:
         return {"error": str(e)}
+
+def _check_excess_words(text: str) -> dict:
+    try:
+        csv_path = os.path.join(os.path.dirname(__file__), 'excess_words.csv')
+        
+        flagged = []
+        text_lower = text.lower()
+        
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            # Flatten the CSV list and filter empty strings
+            excess_list = [word.strip().lower() for row in reader for word in row if word.strip()]
+            
+        for word in excess_list:
+            # Simple substring check (fast) but checking for word boundaries is better
+            # Using simple ' in ' check for performance on large lists vs regex overhead
+            if f" {word} " in text_lower: 
+                flagged.append(word)
+                
+        # Limit to top 20 to avoid overwhelming the LLM context
+        return {"count": len(flagged), "words": flagged[:20]}
+    except Exception as e:
+        return {"error": f"Failed to check excess words: {str(e)}"}
 
 def _get_llm_critique(text: str, stats: dict) -> dict:
     parser = JsonOutputParser(pydantic_object=CritiqueSchema)

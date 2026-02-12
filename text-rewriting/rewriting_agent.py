@@ -16,16 +16,17 @@ class RewritingAgent:
     def __init__(self):
         self.llm = llm_info.llm
         self.output_parser = StrOutputParser()
-        self.chain = rewriting_prompt | self.llm | self.output_parser
+        self.chain = rewriting_prompt | self.llm 
 
     def rewrite(self, text: str, analysis: dict) -> str:
         try:
             analysis_str = json.dumps(analysis, indent=2)
             
-            return self.chain.invoke({
+            response = self.chain.invoke({
                 "text": text,
                 "analysis": analysis_str
             })
+            return response.content
         except Exception as e:
             return f"Error during rewriting: {str(e)}"
 
@@ -33,12 +34,12 @@ class RewritingAgent:
         try:
             analysis_str = json.dumps(analysis, indent=2)
             
-            # Use chain.stream to get a generator of chunks
             for chunk in self.chain.stream({
                 "text": text,
                 "analysis": analysis_str
             }):
-                yield chunk
+                if chunk.content:
+                    yield chunk.content
         except Exception as e:
             yield f"Error during rewriting: {str(e)}"
 

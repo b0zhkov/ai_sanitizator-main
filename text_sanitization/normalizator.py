@@ -20,5 +20,7 @@ PATTERNS = [(re.escape(k), v) for k, v in REPLACEMENT_MAP.items()]
 def normalize_punctuation(text: str) -> str:
     if not text:
         return ""
-        
-    return _PATTERN.sub(lambda m: REPLACEMENT_MAP[m.group(0)], text)
+    
+    text = _PATTERN.sub(lambda m: REPLACEMENT_MAP[m.group(0)], text)
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    return text
