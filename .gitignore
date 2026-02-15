@@ -1,3 +1,7 @@
 venv/
 .venv/
 .env
+web_venv/
+venv_stable/
+__pycache__/
+*.pyc

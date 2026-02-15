@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>AI Sanitizator & Rewriter</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --primary: #1e40af;
+            --secondary: #d946ef;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #05050A;
+        }
+        .bg-ambient {
+            background-image: 
+                radial-gradient(circle at 20% 0%, rgba(30, 27, 75, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 80% 10%, rgba(30, 58, 138, 0.2) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+        .glass-card {
+            background: rgba(10, 10, 15, 0.45);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.6);
+        }
+        textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 99px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .input-glow:focus-within {
+            box-shadow: 0 0 40px -10px rgba(30, 58, 138, 0.25);
+            border-color: rgba(30, 58, 138, 0.4);
+        }
+        @keyframes subtle-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        .animate-float {
+            animation: subtle-float 6s ease-in-out infinite;
+        }
+        .loader {
+            border-top-color: #3b82f6;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-glow-gold {
+             box-shadow: 0 0 15px rgba(217, 119, 6, 0.15);
+        }
+        .btn-glow-blue {
+             box-shadow: 0 0 25px rgba(29, 78, 216, 0.25);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-ambient text-slate-300 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-blue-500/30">
+    <div class="w-full max-w-4xl mx-auto space-y-8 animate-fade-in py-12">
+        <nav class="flex justify-center items-center mb-4">
+            <div
+                class="flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/5 backdrop-blur-md">
+                <span class="material-symbols-outlined text-blue-400/80 text-xl">auto_fix_high</span>
+                <span class="text-sm font-medium text-slate-300 tracking-wide">AI Sanitizator</span>
+            </div>
+        </nav>
+
+        <header class="text-center space-y-3 mb-10">
+            <h1 class="text-3xl md:text-5xl font-semibold tracking-tight text-white pb-1 drop-shadow-lg">
+                Clean & Enhance Your Text
+            </h1>
+            <p class="text-slate-400 text-base md:text-lg max-w-lg mx-auto font-light leading-relaxed">
+                Remove invisible characters or rewrite content with advanced AI logic.
+            </p>
+        </header>
+
+        <main class="glass-card rounded-[2rem] p-6 md:p-10 transition-all duration-500" id="input-panel">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <label
+                        class="group relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-300 transition-all duration-300 bg-slate-900/40 border border-slate-700/30 rounded-xl hover:bg-slate-800/60 hover:text-white cursor-pointer hover:border-blue-500/20 overflow-hidden shadow-sm">
+                        <span
+                            class="material-symbols-outlined text-[20px] mr-2 text-blue-400/80 group-hover:text-blue-300 transition-colors">upload_file</span>
+                        Upload Document
+                        <input accept=".txt,.docx,.pdf,.html" class="hidden" id="fileInput" type="file" />
+                    </label>
+                </div>
+                <button
+                    class="text-xs font-medium text-slate-500 hover:text-red-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5 tracking-wide"
+                    onclick="clearText()">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                    Clear Canvas
+                </button>
+            </div>
+
+            <div class="relative group">
+                <textarea
+                    class="w-full h-72 bg-[#0a0a0f]/60 text-slate-200 placeholder-slate-600 border border-slate-800/60 rounded-2xl p-6 text-base leading-relaxed focus:ring-0 focus:border-blue-500/30 focus:bg-[#0c0c14]/80 transition-all duration-300 resize-y input-glow font-mono md:font-sans shadow-inner"
+                    id="rawText" placeholder="Paste your content here to begin..."></textarea>
+
+                <div
+                    class="mt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-t border-white/5 pt-4">
+                    <div class="flex items-center gap-4 text-xs text-slate-500">
+                        <span class="uppercase tracking-wider font-semibold opacity-60">Supported Formats:</span>
+                        <div class="flex gap-3">
+                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                                title=".html files">
+                                <span class="material-symbols-outlined text-[16px]">code</span> .HTML
+                            </div>
+                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                                title=".pdf files">
+                                <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span> .PDF
+                            </div>
+                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                                title=".docx files">
+                                <span class="material-symbols-outlined text-[16px]">draft</span> .DOCX
+                            </div>
+                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                                title=".txt files">
+                                <span class="material-symbols-outlined text-[16px]">description</span> .TXT
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-10 flex flex-col md:flex-row gap-5 justify-center items-stretch md:items-center">
+                <button
+                    class="group relative flex items-center justify-center gap-4 px-6 py-4 bg-slate-900/60 border border-slate-700/50 rounded-xl hover:bg-slate-800 hover:border-amber-500/30 btn-glow-gold transition-all duration-300 w-full md:w-64"
+                    onclick="processText('clean')">
+                    <div class="bg-amber-500/10 p-2 rounded-lg group-hover:bg-amber-500/20 transition-colors">
+                        <span class="material-symbols-outlined text-amber-400/80 text-xl">cleaning_services</span>
+                    </div>
+                    <div class="flex flex-col items-start text-left">
+                        <span class="text-sm font-semibold text-slate-200 group-hover:text-white">
+                            Sanitize Only
+                        </span>
+                        <span class="text-[10px] text-slate-500 uppercase tracking-wider font-medium">Remove hidden
+                            chars</span>
+                    </div>
+                </button>
+
+                <button
+                    class="group relative flex items-center justify-center gap-4 px-6 py-4 bg-gradient-to-r from-blue-900/90 to-indigo-900/90 border border-blue-700/40 rounded-xl hover:brightness-110 btn-glow-blue transition-all duration-300 w-full md:w-64 transform hover:-translate-y-0.5 shadow-lg"
+                    onclick="processText('rewrite')">
+                    <div class="bg-blue-400/10 p-2 rounded-lg group-hover:bg-blue-400/20 transition-colors">
+                        <span class="material-symbols-outlined text-blue-300 text-xl">auto_awesome</span>
+                    </div>
+                    <div class="flex flex-col items-start text-left">
+                        <span class="text-sm font-bold text-white">
+                            Clean & Rewrite
+                        </span>
+                        <span class="text-[10px] text-blue-200/60 uppercase tracking-wider font-medium">AI Logic
+                            Enhancement</span>
+                    </div>
+                    <div class="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10 pointer-events-none"></div>
+                </button>
+            </div>
+
+            <div class="hidden mt-8 text-center" id="loading">
+                <div
+                    class="inline-flex flex-col items-center gap-3 bg-slate-950/60 px-8 py-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                    <div class="loader ease-linear rounded-full border-2 border-t-2 border-blue-500/30 h-6 w-6"></div>
+                    <span class="text-xs text-slate-400 font-medium tracking-widest uppercase animate-pulse">Processing
+                        AI Logic...</span>
+                </div>
+            </div>
+        </main>
+
+        <div class="hidden space-y-6" id="results-panel">
+            <div class="flex justify-center">
+                <div class="hidden bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-full px-6 py-2 text-sm font-bold shadow-lg"
+                    id="aiScore">
+                    AI Score: <span class="text-blue-400">--/10</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Original / Cleaned Column -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col h-full">
+                    <div class="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
+                        <span class="material-symbols-outlined text-slate-500 text-sm">history_edu</span>
+                        <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Original / Cleaned
+                        </h3>
+                    </div>
+                    <textarea
+                        class="w-full flex-grow bg-transparent border-none text-slate-400 text-sm font-mono resize-none focus:ring-0 p-0 min-h-[250px]"
+                        id="cleanResult" readonly></textarea>
+                </div>
+
+                <!-- Final Output Column -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col h-full relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 pointer-events-none">
+                    </div>
+
+                    <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-3 relative z-10">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-400 text-sm">psychology</span>
+                            <h3 class="text-sm font-semibold text-white uppercase tracking-wider">Final Output</h3>
+                        </div>
+                        <button
+                            class="text-xs text-blue-300 hover:text-white flex items-center gap-1 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500/20 transition-colors"
+                            onclick="copyResult()">
+                            <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+                        </button>
+                    </div>
+
+                    <textarea
+                        class="w-full flex-grow bg-transparent border-none text-slate-200 text-sm leading-relaxed resize-none focus:ring-0 p-0 relative z-10 min-h-[250px]"
+                        id="finalResult" readonly></textarea>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6">
+                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">terminal</span>
+                    Change Log
+                </h3>
+                <div class="bg-slate-950/50 rounded-lg p-4 font-mono text-xs text-slate-400 max-h-40 overflow-y-auto border border-slate-800/50 mb-6"
+                    id="changesLog">
+                </div>
+
+                <div class="flex justify-center pt-2">
+                    <button
+                        class="flex items-center gap-2 px-6 py-2.5 rounded-full border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-sm font-medium"
+                        onclick="reset()">
+                        <span class="material-symbols-outlined text-[18px]">refresh</span>
+                        Start New Task
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                // Actual API Call to /api/upload
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorElem = await response.json();
+                    throw new Error(errorElem.detail || 'Upload failed');
+                }
+
+                const data = await response.json();
+                document.getElementById('rawText').value = data.content;
+
+            } catch (err) {
+                alert('Error uploading file: ' + err.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        async function processText(action) {
+            const text = document.getElementById('rawText').value;
+            if (!text) {
+                alert('Please enter some text first.');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('input-panel').classList.add('opacity-50', 'pointer-events-none');
+
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('text', text);
+
+            try {
+                // Actual API Call to /api/process
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorElem = await response.json();
+                    throw new Error(errorElem.detail || 'Processing failed');
+                }
+
+                const data = await response.json();
+                showResults(data, action);
+            } catch (err) {
+                alert('Error processing text: ' + err.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('input-panel').classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        function showResults(data, action) {
+            document.getElementById('results-panel').classList.remove('hidden');
+            document.getElementById('input-panel').classList.add('hidden');
+
+            document.getElementById('cleanResult').value = data.clean_text;
+
+            if (action === 'rewrite') {
+                document.getElementById('finalResult').value = data.rewritten_text;
+
+                const score = data.ai_score;
+                const scoreEl = document.getElementById('aiScore');
+                const scoreSpan = scoreEl.querySelector('span');
+
+                scoreEl.classList.remove('hidden');
+                scoreEl.style.display = 'inline-block'; // Tailwind override helper
+
+                scoreSpan.textContent = `${score}/10`;
+
+                // Color logic
+                scoreSpan.className = score >= 7 ? 'text-red-400' : (score >= 4 ? 'text-amber-400' : 'text-emerald-400');
+                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-block ${score >= 7 ? 'border-red-900/50' : (score >= 4 ? 'border-amber-900/50' : 'border-emerald-900/50')}`;
+            } else {
+                // If just sanitize, Final Result shows the clean text as well (since there is no rewrite)
+                document.getElementById('finalResult').value = data.clean_text;
+                document.getElementById('aiScore').classList.add('hidden');
+            }
+
+            const logDiv = document.getElementById('changesLog');
+            logDiv.innerHTML = '';
+
+            if (data.changes && data.changes.length > 0) {
+                data.changes.forEach((c, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'py-1 border-b border-slate-800 last:border-0';
+                    div.innerHTML = `<span class="text-slate-600 mr-2">${i + 1}.</span> ${c.description}`;
+                    logDiv.appendChild(div);
+                });
+            } else {
+                logDiv.textContent = 'No changes detected.';
+            }
+        }
+
+        function reset() {
+            document.getElementById('results-panel').classList.add('hidden');
+            document.getElementById('input-panel').classList.remove('hidden');
+            document.getElementById('rawText').value = '';
+            document.getElementById('fileInput').value = '';
+        }
+
+        function clearText() {
+            document.getElementById('rawText').value = '';
+        }
+
+        function copyResult() {
+            const text = document.getElementById('finalResult').value;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('button[onclick="copyResult()"]');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = `<span class="material-symbols-outlined text-[14px]">check</span> Copied`;
+                setTimeout(() => btn.innerHTML = originalHTML, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

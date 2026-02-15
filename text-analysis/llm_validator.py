@@ -12,12 +12,15 @@ sys.path.append(os.path.dirname(__file__))
 import hedging_filler_detector as hedging
 import repetition_detection as repetition
 import uniform_sentence_len as uniform
+import readability_analysis
+import verb_freq
+import punctuation_checker
 import llm_info
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class CritiqueSchema(BaseModel):
-    validation_of_stats: dict = Field(description="Verification of the algorithmically detected hedging, repetition, and variance.")
+    validation_of_stats: dict = Field(description="Verification of the algorithmically detected hedging, repetition, variance, readability, verb usage, and punctuation.")
     stylistic_issues: list[str] = Field(description="Specific AI-like stylistic issues found in the text.")
     recommended_actions: list[str] = Field(description="Steps to take during the rewriting phase.")
     ai_score: float = Field(description="Score from 1.0 (Human-written) to 10.0 (AI-generated). Use decimals for precision.")
@@ -28,6 +31,9 @@ def validate_text(text: str) -> dict:
     stats['hedging'] = _analyze_hedging(text)
     stats['repetition'] = _analyze_repetition(text)
     stats['sentence_variance'] = _analyze_sentence_variance(text)
+    stats['readability'] = _analyze_readability(text)
+    stats['verb_frequency'] = _analyze_verb_frequency(text)
+    stats['punctuation_profile'] = _analyze_punctuation(text)
     stats['flagged_words'] = _check_excess_words(text)
 
     llm_response = _get_llm_critique(text, stats)
@@ -57,6 +63,24 @@ def _analyze_repetition(text: str) -> dict:
 def _analyze_sentence_variance(text: str) -> dict:
     try:
         return uniform.uniform_sentence_check(text)
+    except Exception as e:
+        return {"error": str(e)}
+
+def _analyze_readability(text: str) -> dict:
+    try:
+        return readability_analysis.analyze_readability_variance(text)
+    except Exception as e:
+        return {"error": str(e)}
+
+def _analyze_verb_frequency(text: str) -> dict:
+    try:
+        return verb_freq.analyze_verb_frequency(text)
+    except Exception as e:
+        return {"error": str(e)}
+
+def _analyze_punctuation(text: str) -> dict:
+    try:
+        return punctuation_checker.analyze_punctuation_structure(text)
     except Exception as e:
         return {"error": str(e)}
 
