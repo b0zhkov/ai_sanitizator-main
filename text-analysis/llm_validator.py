@@ -15,6 +15,7 @@ import uniform_sentence_len as uniform
 import readability_analysis
 import verb_freq
 import punctuation_checker
+import ai_phrase_detector
 import llm_info
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -35,6 +36,7 @@ def validate_text(text: str) -> dict:
     stats['verb_frequency'] = _analyze_verb_frequency(text)
     stats['punctuation_profile'] = _analyze_punctuation(text)
     stats['flagged_words'] = _check_excess_words(text)
+    stats['ai_phrases'] = _analyze_ai_phrases(text)
 
     llm_response = _get_llm_critique(text, stats)
     
@@ -106,6 +108,12 @@ def _check_excess_words(text: str) -> dict:
         return {"count": len(flagged), "words": flagged[:20]}
     except Exception as e:
         return {"error": f"Failed to check excess words: {str(e)}"}
+
+def _analyze_ai_phrases(text: str) -> dict:
+    try:
+        return ai_phrase_detector.analyze_ai_phrases(text)
+    except Exception as e:
+        return {"error": str(e)}
 
 def _get_llm_critique(text: str, stats: dict) -> dict:
     parser = JsonOutputParser(pydantic_object=CritiqueSchema)
