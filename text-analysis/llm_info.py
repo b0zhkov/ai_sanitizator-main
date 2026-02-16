@@ -10,5 +10,5 @@ llm = ChatCloudflareWorkersAI(
     model="@cf/meta/llama-3.1-8b-instruct",
     temperature=0.8,
     top_p=0.9,
-    max_tokens=4000,
+    max_tokens=2048
 )

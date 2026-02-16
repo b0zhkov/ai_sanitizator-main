@@ -3,5 +3,6 @@ venv/
 .env
 web_venv/
 venv_stable/
+stable_venv/
 __pycache__/
 *.pyc

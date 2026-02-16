@@ -303,7 +303,6 @@
             formData.append('text', text);
 
             try {
-                // Actual API Call to /api/process
                 const response = await fetch('/api/process', {
                     method: 'POST',
                     body: formData
@@ -314,13 +313,85 @@
                     throw new Error(errorElem.detail || 'Processing failed');
                 }
 
-                const data = await response.json();
-                showResults(data, action);
+                if (action === 'rewrite') {
+                    // Initialize UI for streaming
+                    document.getElementById('results-panel').classList.remove('hidden');
+                    document.getElementById('input-panel').classList.add('hidden');
+
+                    document.getElementById('cleanResult').value = 'Sanitizing...';
+                    document.getElementById('finalResult').value = '';
+                    document.getElementById('aiScore').classList.add('hidden');
+                    document.getElementById('changesLog').innerHTML = '<div class="text-slate-500 italic">Processing...</div>';
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+
+                        // Keep the last incomplete line in the buffer
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            try {
+                                const msg = JSON.parse(line);
+                                handleStreamEvent(msg);
+                            } catch (e) {
+                                console.error('Error parsing stream line', e);
+                            }
+                        }
+                    }
+
+                    if (buffer.trim()) {
+                        try {
+                            const msg = JSON.parse(buffer);
+                            handleStreamEvent(msg);
+                        } catch (e) {
+                            console.error('Error parsing final stream line', e);
+                        }
+                    }
+
+                } else {
+                    // Standard JSON response for 'clean'
+                    const data = await response.json();
+                    showResults(data, action);
+                }
+
             } catch (err) {
                 alert('Error processing text: ' + err.message);
+                // Only hide results if we failed completely
+                if (document.getElementById('results-panel').classList.contains('hidden')) {
+                    document.getElementById('input-panel').classList.remove('opacity-50', 'pointer-events-none');
+                }
             } finally {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('input-panel').classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        function handleStreamEvent(msg) {
+            if (msg.type === 'stage') {
+                if (msg.data.step === 'clean') {
+                    document.getElementById('cleanResult').value = msg.data.clean_text;
+                } else if (msg.data.step === 'verifying') {
+                    document.getElementById('changesLog').innerHTML = '<div class="text-blue-400 animate-pulse flex items-center gap-2"><span class="loader h-3 w-3 border-t-blue-400"></span> Verifying improvements...</div>';
+                }
+            } else if (msg.type === 'chunk') {
+                const finalResult = document.getElementById('finalResult');
+                finalResult.value += msg.data;
+                finalResult.scrollTop = finalResult.scrollHeight;
+            } else if (msg.type === 'done') {
+                const data = msg.data;
+                showResults(data, 'rewrite');
+            } else if (msg.type === 'error') {
+                console.error(msg.data);
+                // Optional: show error in UI
             }
         }
 
@@ -333,20 +404,25 @@
             if (action === 'rewrite') {
                 document.getElementById('finalResult').value = data.rewritten_text;
 
-                const score = data.ai_score;
+                const originalScore = data.original_text_ai_score;
+                const newScore = data.rewritten_text_ai_score || 0.0;
                 const scoreEl = document.getElementById('aiScore');
-                const scoreSpan = scoreEl.querySelector('span');
 
                 scoreEl.classList.remove('hidden');
-                scoreEl.style.display = 'inline-block'; // Tailwind override helper
 
-                scoreSpan.textContent = `${score}/10`;
+                // Helper for colors
+                const getScoreClass = (s) => s >= 7 ? 'text-red-400' : (s >= 4 ? 'text-amber-400' : 'text-emerald-400');
+                const getBorderClass = (s) => s >= 7 ? 'border-red-500/30' : (s >= 4 ? 'border-amber-500/30' : 'border-emerald-500/30');
 
-                // Color logic
-                scoreSpan.className = score >= 7 ? 'text-red-400' : (score >= 4 ? 'text-amber-400' : 'text-emerald-400');
-                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-block ${score >= 7 ? 'border-red-900/50' : (score >= 4 ? 'border-amber-900/50' : 'border-emerald-900/50')}`;
+                scoreEl.innerHTML = `
+                    <span class="text-slate-400 font-medium mr-2">AI Score:</span>
+                    <span class="${getScoreClass(originalScore)} opacity-60 line-through text-xs">${originalScore}/10</span>
+                    <span class="material-symbols-outlined text-slate-500 text-sm mx-1 align-middle">arrow_forward</span>
+                    <span class="${getScoreClass(newScore)} text-base">${newScore}/10</span>
+                `;
+
+                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border ${getBorderClass(newScore)} rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-flex items-center justify-center`;
             } else {
-                // If just sanitize, Final Result shows the clean text as well (since there is no rewrite)
                 document.getElementById('finalResult').value = data.clean_text;
                 document.getElementById('aiScore').classList.add('hidden');
             }
