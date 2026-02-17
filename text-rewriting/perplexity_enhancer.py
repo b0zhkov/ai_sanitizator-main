@@ -97,11 +97,15 @@ def _inject_bursts(text: str) -> str:
 
     starters = frozenset({"The", "It", "This", "That", "There", "He", "She", "We", "They"})
     
-    sentences = text.split('. ')
+    # Regex split to avoid splitting on Dr. Mr. etc.
+    # Lookbehind asserts what precedes the dot is NOT an abbreviation
+    pattern = re.compile(r'(?<!\bDr)(?<!\bMr)(?<!\bMs)(?<!\bMrs)(?<!\bvs)(?<!\bSt)\. ')
+    sentences = pattern.split(text)
     result = []
     
     for i, sent in enumerate(sentences):
-        if not sent.strip():
+        sent = sent.lstrip()  # Fix: Remove leading spaces to ensure indexing matches words[0]
+        if not sent:
             result.append(sent)
             continue
             

@@ -5,12 +5,13 @@ import random
 from typing import List, Dict, Callable
 from structure_breaker import break_structure
 from perplexity_enhancer import enhance_perplexity
+from imperfection_injector import inject_imperfections
 
 
 TRANSITION_DROP_RATE = 0.30
 TRANSITION_REPLACE_RATE = 0.40
 CONJUNCTION_RATE = 0.12
-VOCABULARY_SWAP_RATE = 0.75
+VOCABULARY_SWAP_RATE = 0.85
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 _SENTENCE_BOUNDARY = re.compile(r'(?<=[.!?])\s+')
@@ -227,6 +228,7 @@ def humanize(text: str) -> str:
     text = _enforce_contractions(text)
     text = _fuzz_transitions(text)
     text = _inject_conjunctions(text)
+    text = inject_imperfections(text)
     text = enhance_perplexity(text)
     text = break_structure(text)
     return text

@@ -3,7 +3,7 @@ import random
 from typing import List, Tuple
 
 
-_SENTENCE_BOUNDARY = re.compile(r'(?<=[.!?])\s+')
+_SENTENCE_BOUNDARY = re.compile(r'(?<!\bDr)(?<!\bMr)(?<!\bMs)(?<!\bMrs)(?<!\bvs)(?<!\bSt)(?<=[.!?])\s+')
 
 _SPLIT_CONJUNCTIONS = re.compile(
     r',\s*(and|but|or|yet|so|because|although|while|whereas|since|though)\s+',
@@ -15,11 +15,11 @@ _MOVABLE_CLAUSE = re.compile(
     re.IGNORECASE,
 )
 
-_SENTENCE_SPLIT_RATE = 0.40
-_SENTENCE_MERGE_RATE = 0.30
-_CLAUSE_REORDER_RATE = 0.15
-_COMMA_TO_DASH_RATE = 0.08
-_COMMA_TO_SEMICOLON_RATE = 0.06
+_SENTENCE_SPLIT_RATE = 0.60
+_SENTENCE_MERGE_RATE = 0.50
+_CLAUSE_REORDER_RATE = 0.30
+_COMMA_TO_DASH_RATE = 0.12
+_COMMA_TO_SEMICOLON_RATE = 0.0
 
 _MIN_SPLIT_CHARS = 60
 _SHORT_SENTENCE_WORDS = 8
@@ -99,7 +99,13 @@ def _split_long_sentence(sentence: str) -> str:
     if not _has_min_words(first_half) or not _has_min_words(rest):
         return sentence
 
-    second_half = _capitalize_first(conjunction) + " " + rest.lstrip()
+    capitalized_conn = _capitalize_first(conjunction)
+    rest_clean = rest.lstrip()
+
+    if conjunction.lower() in ("and", "but"):
+        second_half = capitalized_conn + ", " + _lowercase_first_if_safe(rest_clean)
+    else:
+        second_half = capitalized_conn + " " + rest_clean
 
     if first_half[-1] not in '.!?':
         first_half += "."
@@ -129,8 +135,8 @@ def _merge_short_sentences(sentences: List[str]) -> List[str]:
             second = sentences[i + 1]
 
             connector = random.choices(
-                ["; ", " — ", ", and "],
-                weights=[3, 1, 4],
+                [" — ", ", and "],
+                weights=[1, 5],
                 k=1,
             )[0]
 
