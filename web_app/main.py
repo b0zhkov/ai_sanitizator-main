@@ -23,6 +23,7 @@ try:
     from changes_log import build_changes_log, Change
     import llm_validator
     from rewriting_agent import rewriting_agent
+    from post_humanizer import humanize
     import document_loading
 except ImportError as e:
     print(f"Error importing modules: {e}")
@@ -97,19 +98,26 @@ async def process_text(action: str = Form(...), text: str = Form(...)):
                     print(f"Rewrite error: {e}")
                     yield json.dumps({"type": "error", "data": str(e)}) + "\n"
                     
-                rewritten_text_final = "".join(rewritten_chunks_gen)
-                
+                raw_rewritten_text = "".join(rewritten_chunks_gen)
+
                 llm_critique = analysis.get("llm_critique", {})
                 ai_score = llm_critique.get("ai_score", 0.0)
-                
-                # Calculate score for rewritten text
+
+                yield json.dumps({
+                    "type": "stage",
+                    "data": { "step": "humanizing" }
+                }) + "\n"
+
+                rewritten_text_final = humanize(raw_rewritten_text)
+
                 yield json.dumps({
                     "type": "stage",
                     "data": { "step": "verifying" }
                 }) + "\n"
 
-                rewritten_analysis = await asyncio.to_thread(llm_validator.validate_text, rewritten_text_final)
-                rewritten_score = rewritten_analysis.get("llm_critique", {}).get("ai_score", 0.0)
+                rewritten_analysis = await asyncio.to_thread(
+                    llm_validator.verify_metrics_only, rewritten_text_final
+                )
 
                 final_changes = list(changes_list)
                 final_changes.append({
@@ -118,15 +126,14 @@ async def process_text(action: str = Form(...), text: str = Form(...)):
                     "text_after": rewritten_text_final
                 })
 
-                # Final Event
                 yield json.dumps({
-                    "type": "done", 
+                    "type": "done",
                     "data": {
                         "clean_text": clean_text_val,
                         "rewritten_text": rewritten_text_final,
                         "changes": final_changes,
                         "original_text_ai_score": ai_score,
-                        "rewritten_text_ai_score": rewritten_score
+                        "rewritten_metrics": rewritten_analysis.get("statistical_metrics", {})
                     }
                 }) + "\n"
 

@@ -197,6 +197,15 @@
                 </div>
             </div>
 
+            <div class="hidden glass-card rounded-2xl p-5" id="metricsPanel">
+                <div class="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
+                    <span class="material-symbols-outlined text-emerald-400 text-sm">monitoring</span>
+                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Rewritten Text Metrics
+                    </h3>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="metricsGrid"></div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Original / Cleaned Column -->
                 <div class="glass-card rounded-2xl p-5 flex flex-col h-full">
@@ -379,6 +388,10 @@
             if (msg.type === 'stage') {
                 if (msg.data.step === 'clean') {
                     document.getElementById('cleanResult').value = msg.data.clean_text;
+                } else if (msg.data.step === 'analyzed') {
+                    document.getElementById('changesLog').innerHTML = '<div class="text-amber-400 animate-pulse flex items-center gap-2"><span class="loader h-3 w-3 border-t-amber-400"></span> Rewriting with AI logic...</div>';
+                } else if (msg.data.step === 'humanizing') {
+                    document.getElementById('changesLog').innerHTML = '<div class="text-purple-400 animate-pulse flex items-center gap-2"><span class="loader h-3 w-3 border-t-purple-400"></span> Humanizing text patterns...</div>';
                 } else if (msg.data.step === 'verifying') {
                     document.getElementById('changesLog').innerHTML = '<div class="text-blue-400 animate-pulse flex items-center gap-2"><span class="loader h-3 w-3 border-t-blue-400"></span> Verifying improvements...</div>';
                 }
@@ -391,7 +404,6 @@
                 showResults(data, 'rewrite');
             } else if (msg.type === 'error') {
                 console.error(msg.data);
-                // Optional: show error in UI
             }
         }
 
@@ -405,26 +417,24 @@
                 document.getElementById('finalResult').value = data.rewritten_text;
 
                 const originalScore = data.original_text_ai_score;
-                const newScore = data.rewritten_text_ai_score || 0.0;
                 const scoreEl = document.getElementById('aiScore');
-
-                scoreEl.classList.remove('hidden');
-
-                // Helper for colors
                 const getScoreClass = (s) => s >= 7 ? 'text-red-400' : (s >= 4 ? 'text-amber-400' : 'text-emerald-400');
                 const getBorderClass = (s) => s >= 7 ? 'border-red-500/30' : (s >= 4 ? 'border-amber-500/30' : 'border-emerald-500/30');
 
+                scoreEl.classList.remove('hidden');
                 scoreEl.innerHTML = `
-                    <span class="text-slate-400 font-medium mr-2">AI Score:</span>
-                    <span class="${getScoreClass(originalScore)} opacity-60 line-through text-xs">${originalScore}/10</span>
-                    <span class="material-symbols-outlined text-slate-500 text-sm mx-1 align-middle">arrow_forward</span>
-                    <span class="${getScoreClass(newScore)} text-base">${newScore}/10</span>
+                    <span class="text-slate-400 font-medium mr-2">Original AI Score:</span>
+                    <span class="${getScoreClass(originalScore)}">${originalScore}/10</span>
                 `;
+                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border ${getBorderClass(originalScore)} rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-flex items-center justify-center`;
 
-                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border ${getBorderClass(newScore)} rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-flex items-center justify-center`;
+                if (data.rewritten_metrics) {
+                    renderMetrics(data.rewritten_metrics);
+                }
             } else {
                 document.getElementById('finalResult').value = data.clean_text;
                 document.getElementById('aiScore').classList.add('hidden');
+                document.getElementById('metricsPanel').classList.add('hidden');
             }
 
             const logDiv = document.getElementById('changesLog');
@@ -440,6 +450,65 @@
             } else {
                 logDiv.textContent = 'No changes detected.';
             }
+        }
+
+        function renderMetrics(metrics) {
+            const panel = document.getElementById('metricsPanel');
+            const grid = document.getElementById('metricsGrid');
+            panel.classList.remove('hidden');
+            grid.innerHTML = '';
+
+            const items = [];
+
+            const sv = metrics.sentence_variance || {};
+            if (sv.category) {
+                const good = sv.category === 'burstive';
+                const ok = sv.category === 'moderate';
+                items.push({ label: 'Sentence Variety', value: sv.category, good: good, ok: ok });
+            }
+
+            const ap = metrics.ai_phrases || {};
+            if (ap.count !== undefined) {
+                items.push({ label: 'AI Phrases', value: ap.count === 0 ? 'None found' : ap.count + ' found', good: ap.count === 0, ok: ap.count <= 2 });
+            }
+
+            const hd = metrics.hedging || {};
+            if (hd.filler_density !== undefined) {
+                const low = hd.filler_density < 0.02;
+                items.push({ label: 'Hedging Density', value: low ? 'Low' : 'Elevated', good: low, ok: hd.filler_density < 0.04 });
+            }
+
+            const vf = metrics.verb_frequency || {};
+            if (vf.ai_verb_density !== undefined) {
+                const low = vf.ai_verb_density < 0.1;
+                items.push({ label: 'AI Verbs', value: low ? 'Low' : 'Elevated', good: low, ok: vf.ai_verb_density < 0.2 });
+            }
+
+            const rep = metrics.repetition || {};
+            if (rep.count !== undefined) {
+                items.push({ label: 'Repetition', value: rep.count === 0 ? 'None' : rep.count + ' phrases', good: rep.count === 0, ok: rep.count <= 2 });
+            }
+
+            const pp = metrics.punctuation_profile || {};
+            if (pp.structure_ratio !== undefined) {
+                const balanced = pp.structure_ratio < 0.7;
+                items.push({ label: 'Punctuation', value: balanced ? 'Varied' : 'Rigid', good: balanced, ok: pp.structure_ratio < 0.85 });
+            }
+
+            items.forEach(item => {
+                const colorClass = item.good ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : (item.ok ? 'text-amber-400 border-amber-500/20 bg-amber-500/5' : 'text-red-400 border-red-500/20 bg-red-500/5');
+                const icon = item.good ? 'check_circle' : (item.ok ? 'warning' : 'error');
+                const div = document.createElement('div');
+                div.className = `rounded-xl border px-3 py-2.5 ${colorClass}`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="material-symbols-outlined text-[14px]">${icon}</span>
+                        <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400">${item.label}</span>
+                    </div>
+                    <span class="text-sm font-medium">${item.value}</span>
+                `;
+                grid.appendChild(div);
+            });
         }
 
         function reset() {

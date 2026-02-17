@@ -26,23 +26,35 @@ class CritiqueSchema(BaseModel):
     recommended_actions: list[str] = Field(description="Steps to take during the rewriting phase.")
     ai_score: float = Field(description="Score from 1.0 (Human-written) to 10.0 (AI-generated). Use decimals for precision.")
 
-def validate_text(text: str) -> dict:
-    stats = {}
-    
-    stats['hedging'] = _analyze_hedging(text)
-    stats['repetition'] = _analyze_repetition(text)
-    stats['sentence_variance'] = _analyze_sentence_variance(text)
-    stats['readability'] = _analyze_readability(text)
-    stats['verb_frequency'] = _analyze_verb_frequency(text)
-    stats['punctuation_profile'] = _analyze_punctuation(text)
-    stats['flagged_words'] = _check_excess_words(text)
-    stats['ai_phrases'] = _analyze_ai_phrases(text)
+def _collect_stats(text: str) -> dict:
+    return {
+        'hedging': _analyze_hedging(text),
+        'repetition': _analyze_repetition(text),
+        'sentence_variance': _analyze_sentence_variance(text),
+        'readability': _analyze_readability(text),
+        'verb_frequency': _analyze_verb_frequency(text),
+        'punctuation_profile': _analyze_punctuation(text),
+        'flagged_words': _check_excess_words(text),
+        'ai_phrases': _analyze_ai_phrases(text),
+    }
 
+
+def validate_text(text: str) -> dict:
+    stats = _collect_stats(text)
     llm_response = _get_llm_critique(text, stats)
-    
+
     return {
         "statistical_metrics": stats,
         "llm_critique": llm_response
+    }
+
+
+def verify_metrics_only(text: str) -> dict:
+    stats = _collect_stats(text)
+
+    return {
+        "statistical_metrics": stats,
+        "llm_critique": None
     }
 
 def _analyze_hedging(text: str) -> dict:
