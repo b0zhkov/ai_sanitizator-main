@@ -101,7 +101,7 @@ const History = (() => {
     function _buildCard(entry) {
         const div = document.createElement("div");
         div.className =
-            "p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer group";
+            "p-3 rounded-xl border border-theme-divider bg-theme-navbar hover:bg-white/10 transition-colors cursor-pointer group";
 
         const isRewrite = entry.action_type === "rewrite";
         const badgeColor = isRewrite ? "blue" : "amber";
@@ -118,13 +118,14 @@ const History = (() => {
             <div class="flex items-center justify-between mb-2">
                 <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-${badgeColor}-500/15 text-${badgeColor}-400">${badgeLabel}</span>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] text-slate-600">${timeStr}</span>
-                    ${entry.id ? `<button class="hidden group-hover:block text-slate-600 hover:text-red-400 transition-colors" onclick="event.stopPropagation(); History.deleteEntry(${entry.id})">
+                    <span class="text-[10px] text-theme-muted">${timeStr}</span>
+                    ${entry.id ? `<button class="hidden group-hover:block text-theme-muted hover:text-red-400 transition-colors" onclick="event.stopPropagation(); History.deleteEntry(${entry.id})">
                         <span class="material-symbols-outlined text-[14px]">close</span>
                     </button>` : ""}
                 </div>
             </div>
-            <p class="text-xs text-slate-400 leading-relaxed">${_escapeHtml(preview)}</p>
+            </div>
+            <p class="text-xs text-theme-secondary leading-relaxed">${_escapeHtml(preview)}</p>
         `;
 
         div.onclick = () => _loadEntry(entry);

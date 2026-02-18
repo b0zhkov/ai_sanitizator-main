@@ -14,78 +14,203 @@
         rel="stylesheet" />
     <style type="text/tailwindcss">
         :root {
+            /* Base Colors & Backgrounds */
             --primary: #1e40af;
             --secondary: #d946ef;
+
+            /* Default to Dark Mode Variables */
+            --bg-body: #05050A;
+            --bg-ambient-1: rgba(30, 27, 75, 0.4);
+            --bg-ambient-2: rgba(30, 58, 138, 0.2);
+            
+            --glass-bg: rgba(10, 10, 15, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-shadow: rgba(0, 0, 0, 0.6);
+
+            --text-primary: #cbd5e1; /* slate-300 */
+            --text-heading: #ffffff;
+            --text-secondary: #94a3b8; /* slate-400 */
+            --text-muted: #64748b; /* slate-500 */
+
+            --input-bg: rgba(10, 10, 15, 0.6); /* #0a0a0f/60 */
+            --input-border: rgba(30, 41, 59, 0.6); /* slate-800/60 */
+            --input-placeholder: #475569; /* slate-600 */
+            --input-text: #e2e8f0; /* slate-200 */
+            --input-focus-bg: rgba(12, 12, 20, 0.8);
+
+            --navbar-bg-color: rgba(255, 255, 255, 0.05); /* white/5 */
+            --navbar-border: rgba(255, 255, 255, 0.05);
+
+            --card-bg: rgba(0, 0, 0, 0.2); 
+            --divider: rgba(255, 255, 255, 0.05);
+
+            --btn-glass-hover: rgba(255, 255, 255, 0.05);
+            --icon-color: rgba(96, 165, 250, 0.8); /* blue-400/80 */
+            --icon-hover: #93c5fd; /* blue-300 */
+
+            --diff-added-bg: rgba(34, 197, 94, 0.12);
+            --diff-added-text: #86efac;
+            --diff-added-border: rgba(34, 197, 94, 0.4);
+
+            --diff-removed-bg: rgba(239, 68, 68, 0.12);
+            --diff-removed-text: #fca5a5;
+            --diff-removed-border: rgba(239, 68, 68, 0.4);
+
+            --btn-secondary-bg: rgba(15, 23, 42, 0.6);
+            --btn-secondary-border: rgba(51, 65, 85, 0.5);
+            --btn-secondary-hover-bg: #1e293b;
+            --btn-secondary-hover-border: rgba(245, 158, 11, 0.3);
+
+            --scrollbar-track: rgba(255, 255, 255, 0.01);
+            --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+            --scrollbar-thumb-hover: rgba(255, 255, 255, 0.15);
+            
+            --selection-bg: rgba(59, 130, 246, 0.3);
         }
+
+        :root[data-theme="light"] {
+           
+            --bg-body: #f8fafc;
+            --bg-ambient-1: rgba(59, 130, 246, 0.08);
+            --bg-ambient-2: rgba(219, 234, 254, 0.3);
+
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --glass-shadow: rgba(0, 0, 0, 0.08);
+
+            --text-primary: #334155; /* slate-700/800 */
+            --text-heading: #0f172a; /* slate-900 */
+            --text-secondary: #64748b; /* slate-500 */
+            --text-muted: #94a3b8; /* slate-400 */
+
+            --input-bg: rgba(255, 255, 255, 0.4);
+            --input-border: rgba(203, 213, 225, 0.6); /* slate-200/60 */
+            --input-placeholder: #94a3b8; /* slate-400 */
+            --input-text: #1e293b; /* slate-800 */
+            --input-focus-bg: rgba(255, 255, 255, 0.8);
+
+            --navbar-bg-color: rgba(255, 255, 255, 0.6);
+            --navbar-border: rgba(255, 255, 255, 0.8);
+
+            --card-bg: rgba(255, 255, 255, 0.5);
+            --divider: rgba(0, 0, 0, 0.05);
+
+            --btn-glass-hover: rgba(0, 0, 0, 0.05);
+            --icon-color: #2563eb; /* blue-600 */
+            --icon-hover: #1d4ed8; /* blue-700 */
+
+            --diff-added-bg: rgba(34, 197, 94, 0.1);
+            --diff-added-text: #15803d; /* green-700 */
+            --diff-added-border: rgba(34, 197, 94, 0.5);
+
+            --diff-removed-bg: rgba(239, 68, 68, 0.1);
+            --diff-removed-text: #b91c1c; /* red-700 */
+            --diff-removed-border: rgba(239, 68, 68, 0.5);
+
+            --btn-secondary-bg: rgba(0, 0, 0, 0.04);
+            --btn-secondary-border: rgba(0, 0, 0, 0.05);
+            --btn-secondary-hover-bg: rgba(0, 0, 0, 0.08);
+            --btn-secondary-hover-border: rgba(0, 0, 0, 0.1);
+
+            --scrollbar-track: rgba(0, 0, 0, 0.02);
+            --scrollbar-thumb: rgba(0, 0, 0, 0.1);
+            --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+
+            --selection-bg: rgba(191, 219, 254, 1);
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #05050A;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
         .bg-ambient {
             background-image: 
-                radial-gradient(circle at 20% 0%, rgba(30, 27, 75, 0.4) 0%, transparent 50%),
-                radial-gradient(circle at 80% 10%, rgba(30, 58, 138, 0.2) 0%, transparent 40%);
+                radial-gradient(circle at 20% 0%, var(--bg-ambient-1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 10%, var(--bg-ambient-2) 0%, transparent 40%);
             background-attachment: fixed;
         }
+
         .glass-card {
-            background: rgba(10, 10, 15, 0.45);
+            background: var(--glass-bg);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 35px 60px -15px var(--glass-shadow);
         }
+
         textarea::-webkit-scrollbar, .diff-view::-webkit-scrollbar {
             width: 6px;
         }
+
         textarea::-webkit-scrollbar-track, .diff-view::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.01);
+            background: var(--scrollbar-track);
         }
+
         textarea::-webkit-scrollbar-thumb, .diff-view::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--scrollbar-thumb);
             border-radius: 99px;
         }
+
         textarea::-webkit-scrollbar-thumb:hover, .diff-view::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--scrollbar-thumb-hover);
         }
+
         .input-glow:focus-within {
             box-shadow: 0 0 40px -10px rgba(30, 58, 138, 0.25);
             border-color: rgba(30, 58, 138, 0.4);
         }
+
         @keyframes subtle-float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-3px); }
         }
+
         .animate-float {
             animation: subtle-float 6s ease-in-out infinite;
         }
+
         .loader {
             border-top-color: #3b82f6;
             -webkit-animation: spinner 1.5s linear infinite;
             animation: spinner 1.5s linear infinite;
         }
+
         @keyframes spinner {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
         .btn-glow-gold {
              box-shadow: 0 0 15px rgba(217, 119, 6, 0.15);
         }
+
         .btn-glow-blue {
              box-shadow: 0 0 25px rgba(29, 78, 216, 0.25);
         }
+        
+        /* Light mode specific glow adjustments */
+        :root[data-theme="light"] .btn-glow-blue {
+             box-shadow: 0 10px 25px -5px rgba(30, 64, 175, 0.4);
+        }
+
         .diff-added {
-            background: rgba(34, 197, 94, 0.12);
-            color: #86efac;
-            border-left: 2px solid rgba(34, 197, 94, 0.4);
+            background: var(--diff-added-bg);
+            color: var(--diff-added-text);
+            border-left: 2px solid var(--diff-added-border);
             padding: 1px 4px;
         }
+
         .diff-removed {
-            background: rgba(239, 68, 68, 0.12);
-            color: #fca5a5;
+            background: var(--diff-removed-bg);
+            color: var(--diff-removed-text);
             text-decoration: line-through;
-            border-left: 2px solid rgba(239, 68, 68, 0.4);
+            border-left: 2px solid var(--diff-removed-border);
             padding: 1px 4px;
         }
+
         .diff-view {
             font-family: 'Inter', sans-serif;
             font-size: 0.875rem;
@@ -93,6 +218,7 @@
             white-space: pre-wrap;
             word-wrap: break-word;
         }
+
         .strength-slider {
             -webkit-appearance: none;
             appearance: none;
@@ -101,6 +227,7 @@
             outline: none;
             background: linear-gradient(to right, #22c55e, #eab308, #ef4444);
         }
+
         .strength-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -111,55 +238,98 @@
             cursor: pointer;
             box-shadow: 0 0 8px rgba(0,0,0,0.4);
         }
+
         .para-score {
             transition: all 0.2s ease;
         }
+
         .para-score:hover {
             transform: scale(1.02);
         }
+
         .tab-active {
             border-bottom: 2px solid #3b82f6;
-            color: white;
+            color: var(--tab-active-text);
         }
+
         .tab-inactive {
             border-bottom: 2px solid transparent;
-            color: #64748b;
+            color: var(--text-muted);
         }
+
         .tab-inactive:hover {
-            color: #94a3b8;
+            color: var(--text-secondary);
         }
+
         #historyPanel {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         #authModal .modal-backdrop {
             transition: opacity 0.2s ease;
+        }
+
+        /* Utility classes for variable mapping */
+        .text-theme-heading { color: var(--text-heading); }
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+        
+        .bg-theme-navbar { background-color: var(--navbar-bg-color); border-color: var(--navbar-border); }
+        .icon-theme { color: var(--icon-color); }
+        .icon-theme:hover { color: var(--icon-hover); }
+
+        .input-theme {
+            background-color: var(--input-bg);
+            border-color: var(--input-border);
+            color: var(--input-text);
+        }
+        .input-theme::placeholder { color: var(--input-placeholder); }
+        .input-theme:focus { background-color: var(--input-focus-bg); }
+        
+        .border-theme-divider { border-color: var(--divider); }
+        .btn-theme-secondary {
+            background-color: var(--btn-secondary-bg);
+            border-color: var(--btn-secondary-border);
+        }
+        .btn-theme-secondary:hover {
+            background-color: var(--btn-secondary-hover-bg);
+            border-color: var(--btn-secondary-hover-border);
         }
     </style>
 </head>
 
-<body
-    class="bg-ambient text-slate-300 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-blue-500/30">
+<body class="bg-ambient min-h-screen flex flex-col items-center justify-center p-4 selection:bg-blue-500/30">
     <div class="w-full max-w-4xl mx-auto space-y-8 animate-fade-in py-12">
         <nav class="flex justify-center items-center mb-4">
             <div
-                class="flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/5 backdrop-blur-md">
-                <span class="material-symbols-outlined text-blue-400/80 text-xl">auto_fix_high</span>
-                <span class="text-sm font-medium text-slate-300 tracking-wide">AI Sanitizator</span>
+                class="flex items-center gap-3 px-5 py-2 rounded-full bg-theme-navbar border backdrop-blur-md transition-colors duration-300">
+                <span class="material-symbols-outlined icon-theme text-xl">auto_fix_high</span>
+                <span class="text-sm font-medium text-theme-primary tracking-wide">AI Sanitizator</span>
 
-                <div class="w-px h-4 bg-white/10 mx-1"></div>
+                <div class="w-px h-4 bg-gray-500/20 mx-1"></div>
 
-                <button class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                <button
+                    class="flex items-center gap-1 text-xs text-theme-muted hover:text-theme-primary transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                    onclick="Theme.toggle()" title="Switch Theme">
+                    <span class="material-symbols-outlined text-[18px]" id="themeToggleIcon">light_mode</span>
+                </button>
+
+                <button
+                    class="flex items-center gap-1 text-xs text-theme-muted hover:text-theme-primary transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
                     onclick="History.toggle()" title="History">
                     <span class="material-symbols-outlined text-[18px]">history</span>
                 </button>
 
-                <button class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                <button
+                    class="flex items-center gap-1 text-xs text-theme-muted hover:text-theme-primary transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
                     id="authNavBtn" title="Account">
                     <span class="material-symbols-outlined text-[18px]">person</span>
                     <span id="authNavLabel" class="hidden sm:inline">Sign In</span>
                 </button>
 
-                <button class="hidden text-xs text-slate-500 hover:text-red-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                <button
+                    class="hidden text-xs text-slate-500 hover:text-red-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
                     id="logoutBtn" onclick="AuthUI.handleLogout()" title="Logout">
                     <span class="material-symbols-outlined text-[18px]">logout</span>
                 </button>
@@ -167,10 +337,10 @@
         </nav>
 
         <header class="text-center space-y-3 mb-10">
-            <h1 class="text-3xl md:text-5xl font-semibold tracking-tight text-white pb-1 drop-shadow-lg">
+            <h1 class="text-3xl md:text-5xl font-semibold tracking-tight text-theme-heading pb-1 drop-shadow-lg">
                 Clean & Enhance Your Text
             </h1>
-            <p class="text-slate-400 text-base md:text-lg max-w-lg mx-auto font-light leading-relaxed">
+            <p class="text-theme-secondary text-base md:text-lg max-w-lg mx-auto font-light leading-relaxed">
                 Remove invisible characters or rewrite content with advanced AI logic.
             </p>
         </header>
@@ -179,15 +349,15 @@
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
                 <div class="flex items-center gap-3">
                     <label
-                        class="group relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-300 transition-all duration-300 bg-slate-900/40 border border-slate-700/30 rounded-xl hover:bg-slate-800/60 hover:text-white cursor-pointer hover:border-blue-500/20 overflow-hidden shadow-sm">
+                        class="group relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-theme-primary transition-all duration-300 bg-theme-navbar border border-theme-divider rounded-xl hover:bg-white/10 hover:text-theme-heading cursor-pointer hover:border-blue-500/20 overflow-hidden shadow-sm">
                         <span
-                            class="material-symbols-outlined text-[20px] mr-2 text-blue-400/80 group-hover:text-blue-300 transition-colors">upload_file</span>
+                            class="material-symbols-outlined text-[20px] mr-2 icon-theme group-hover:scale-110 transition-transform">upload_file</span>
                         Upload Document
                         <input accept=".txt,.docx,.pdf,.html" class="hidden" id="fileInput" type="file" />
                     </label>
                 </div>
                 <button
-                    class="text-xs font-medium text-slate-500 hover:text-red-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5 tracking-wide"
+                    class="text-xs font-medium text-theme-muted hover:text-red-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5 tracking-wide"
                     onclick="clearText()">
                     <span class="material-symbols-outlined text-[16px]">delete</span>
                     Clear Canvas
@@ -196,27 +366,27 @@
 
             <div class="relative group">
                 <textarea
-                    class="w-full h-72 bg-[#0a0a0f]/60 text-slate-200 placeholder-slate-600 border border-slate-800/60 rounded-2xl p-6 text-base leading-relaxed focus:ring-0 focus:border-blue-500/30 focus:bg-[#0c0c14]/80 transition-all duration-300 resize-y input-glow font-mono md:font-sans shadow-inner"
+                    class="w-full h-72 input-theme rounded-2xl p-6 text-base leading-relaxed focus:ring-0 transition-all duration-300 resize-y input-glow font-mono md:font-sans shadow-inner"
                     id="rawText" placeholder="Paste your content here to begin..."></textarea>
 
                 <div
-                    class="mt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-t border-white/5 pt-4">
-                    <div class="flex items-center gap-4 text-xs text-slate-500">
+                    class="mt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-t border-theme-divider pt-4">
+                    <div class="flex items-center gap-4 text-xs text-theme-muted">
                         <span class="uppercase tracking-wider font-semibold opacity-60">Supported Formats:</span>
                         <div class="flex gap-3">
-                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                            <div class="flex items-center gap-1 hover:text-theme-primary transition-colors cursor-help"
                                 title=".html files">
                                 <span class="material-symbols-outlined text-[16px]">code</span> .HTML
                             </div>
-                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                            <div class="flex items-center gap-1 hover:text-theme-primary transition-colors cursor-help"
                                 title=".pdf files">
                                 <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span> .PDF
                             </div>
-                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                            <div class="flex items-center gap-1 hover:text-theme-primary transition-colors cursor-help"
                                 title=".docx files">
                                 <span class="material-symbols-outlined text-[16px]">draft</span> .DOCX
                             </div>
-                            <div class="flex items-center gap-1 hover:text-slate-300 transition-colors cursor-help"
+                            <div class="flex items-center gap-1 hover:text-theme-primary transition-colors cursor-help"
                                 title=".txt files">
                                 <span class="material-symbols-outlined text-[16px]">description</span> .TXT
                             </div>
@@ -226,11 +396,11 @@
             </div>
 
             <!-- Strength Slider -->
-            <div class="mt-6 bg-slate-900/40 border border-slate-800/40 rounded-xl p-4" id="strengthControl">
+            <div class="mt-6 bg-theme-navbar border border-theme-divider rounded-xl p-4" id="strengthControl">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-purple-400/80 text-[18px]">tune</span>
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Humanization
+                        <span class="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Humanization
                             Strength</span>
                     </div>
                     <span class="text-xs font-bold px-2.5 py-0.5 rounded-full" id="strengthLabel"
@@ -238,7 +408,7 @@
                 </div>
                 <input type="range" min="0" max="2" value="1" class="w-full strength-slider" id="strengthSlider"
                     oninput="updateStrengthLabel(this.value)" />
-                <div class="flex justify-between text-[10px] text-slate-600 mt-1 px-0.5">
+                <div class="flex justify-between text-[10px] text-theme-muted mt-1 px-0.5">
                     <span>Light</span>
                     <span>Medium</span>
                     <span>Aggressive</span>
@@ -247,16 +417,16 @@
 
             <div class="mt-10 flex flex-col md:flex-row gap-5 justify-center items-stretch md:items-center">
                 <button
-                    class="group relative flex items-center justify-center gap-4 px-6 py-4 bg-slate-900/60 border border-slate-700/50 rounded-xl hover:bg-slate-800 hover:border-amber-500/30 btn-glow-gold transition-all duration-300 w-full md:w-64"
+                    class="group relative flex items-center justify-center gap-4 px-6 py-4 btn-theme-secondary border rounded-xl btn-glow-gold transition-all duration-300 w-full md:w-64"
                     onclick="processText('clean')">
                     <div class="bg-amber-500/10 p-2 rounded-lg group-hover:bg-amber-500/20 transition-colors">
                         <span class="material-symbols-outlined text-amber-400/80 text-xl">cleaning_services</span>
                     </div>
                     <div class="flex flex-col items-start text-left">
-                        <span class="text-sm font-semibold text-slate-200 group-hover:text-white">
+                        <span class="text-sm font-semibold text-theme-primary group-hover:text-theme-heading">
                             Sanitize Only
                         </span>
-                        <span class="text-[10px] text-slate-500 uppercase tracking-wider font-medium">Remove hidden
+                        <span class="text-[10px] text-theme-muted uppercase tracking-wider font-medium">Remove hidden
                             chars</span>
                     </div>
                 </button>
@@ -280,9 +450,12 @@
 
             <div class="hidden mt-8 text-center" id="loading">
                 <div
-                    class="inline-flex flex-col items-center gap-3 bg-slate-950/60 px-8 py-4 rounded-2xl border border-white/5 backdrop-blur-sm">
-                    <div class="loader ease-linear rounded-full border-2 border-t-2 border-blue-500/30 h-6 w-6"></div>
-                    <span class="text-xs text-slate-400 font-medium tracking-widest uppercase animate-pulse">Processing
+                    class="inline-flex flex-col items-center gap-3 bg-theme-navbar px-8 py-4 rounded-2xl border border-glass-border backdrop-blur-sm shadow-xl">
+                    <div
+                        class="loader ease-linear rounded-full border-2 border-theme-divider border-t-blue-500/30 h-6 w-6">
+                    </div>
+                    <span
+                        class="text-xs text-theme-muted font-medium tracking-widest uppercase animate-pulse">Processing
                         AI Logic...</span>
                 </div>
             </div>
@@ -297,9 +470,9 @@
             </div>
 
             <div class="hidden glass-card rounded-2xl p-5" id="metricsPanel">
-                <div class="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
+                <div class="flex items-center gap-2 mb-4 border-b border-theme-divider pb-3">
                     <span class="material-symbols-outlined text-emerald-400 text-sm">monitoring</span>
-                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Rewritten Text Metrics
+                    <h3 class="text-sm font-semibold text-theme-primary uppercase tracking-wider">Rewritten Text Metrics
                     </h3>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="metricsGrid"></div>
@@ -307,9 +480,9 @@
 
             <!-- Per-Paragraph Analysis -->
             <div class="hidden glass-card rounded-2xl p-5" id="paraAnalysisPanel">
-                <div class="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
+                <div class="flex items-center gap-2 mb-4 border-b border-theme-divider pb-3">
                     <span class="material-symbols-outlined text-violet-400 text-sm">format_list_numbered</span>
-                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Per-Paragraph Analysis
+                    <h3 class="text-sm font-semibold text-theme-primary uppercase tracking-wider">Per-Paragraph Analysis
                     </h3>
                 </div>
                 <div class="space-y-2" id="paraAnalysisGrid"></div>
@@ -318,13 +491,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Original / Cleaned Column -->
                 <div class="glass-card rounded-2xl p-5 flex flex-col h-full">
-                    <div class="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
-                        <span class="material-symbols-outlined text-slate-500 text-sm">history_edu</span>
-                        <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Original / Cleaned
+                    <div class="flex items-center gap-2 mb-4 border-b border-theme-divider pb-3">
+                        <span class="material-symbols-outlined text-theme-muted text-sm">history_edu</span>
+                        <h3 class="text-sm font-semibold text-theme-primary uppercase tracking-wider">Original / Cleaned
                         </h3>
                     </div>
                     <textarea
-                        class="w-full flex-grow bg-transparent border-none text-slate-400 text-sm font-mono resize-none focus:ring-0 p-0 min-h-[250px]"
+                        class="w-full flex-grow bg-transparent border-none text-theme-secondary text-sm font-mono resize-none focus:ring-0 p-0 min-h-[250px]"
                         id="cleanResult" readonly></textarea>
                 </div>
 
@@ -334,7 +507,8 @@
                     </div>
 
                     <!-- Tabs: Text / Diff -->
-                    <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-3 relative z-10">
+                    <div
+                        class="flex items-center justify-between mb-4 border-b border-theme-divider pb-3 relative z-10">
                         <div class="flex items-center gap-4">
                             <button class="text-sm font-semibold pb-1 tab-active transition-colors" id="tabText"
                                 onclick="switchTab('text')">
@@ -363,7 +537,7 @@
                     </div>
 
                     <textarea
-                        class="w-full flex-grow bg-transparent border-none text-slate-200 text-sm leading-relaxed resize-none focus:ring-0 p-0 relative z-10 min-h-[250px]"
+                        class="w-full flex-grow bg-transparent border-none text-theme-heading text-sm leading-relaxed resize-none focus:ring-0 p-0 relative z-10 min-h-[250px]"
                         id="finalResult" readonly></textarea>
 
                     <div class="hidden diff-view overflow-y-auto relative z-10 min-h-[250px] max-h-[400px]"
@@ -372,17 +546,18 @@
             </div>
 
             <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <h3
+                    class="text-xs font-semibold text-theme-muted uppercase tracking-wider mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-sm">terminal</span>
                     Change Log
                 </h3>
-                <div class="bg-slate-950/50 rounded-lg p-4 font-mono text-xs text-slate-400 max-h-40 overflow-y-auto border border-slate-800/50 mb-6"
+                <div class="bg-theme-navbar rounded-lg p-4 font-mono text-xs text-theme-secondary max-h-40 overflow-y-auto border border-theme-divider mb-6"
                     id="changesLog">
                 </div>
 
                 <div class="flex justify-center pt-2">
                     <button
-                        class="flex items-center gap-2 px-6 py-2.5 rounded-full border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-sm font-medium"
+                        class="flex items-center gap-2 px-6 py-2.5 rounded-full border border-theme-divider text-theme-primary hover:bg-white/10 hover:text-theme-heading transition-all text-sm font-medium"
                         onclick="reset()">
                         <span class="material-symbols-outlined text-[18px]">refresh</span>
                         Start New Task
@@ -397,40 +572,47 @@
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onclick="AuthUI.closeModal()"></div>
         <div class="glass-card rounded-2xl p-8 w-full max-w-sm relative z-10 space-y-5">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-white" id="authModalTitle">Welcome Back</h2>
-                <button class="text-slate-500 hover:text-white transition-colors" onclick="AuthUI.closeModal()">
+                <h2 class="text-lg font-semibold text-theme-heading" id="authModalTitle">Welcome Back</h2>
+                <button class="text-theme-muted hover:text-theme-heading transition-colors"
+                    onclick="AuthUI.closeModal()">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <div class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2" id="authError"></div>
+            <div class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
+                id="authError"></div>
 
             <div class="space-y-3">
-                <input class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 focus:ring-0 focus:border-blue-500/40 transition-colors"
+                <input
+                    class="w-full input-theme border rounded-xl px-4 py-3 text-sm placeholder-opacity-70 focus:ring-0 focus:border-blue-500/40 transition-colors"
                     id="authEmail" type="email" placeholder="Email address"
                     onkeydown="if(event.key==='Enter') AuthUI.handleSubmit()" />
-                <input class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 focus:ring-0 focus:border-blue-500/40 transition-colors"
+                <input
+                    class="w-full input-theme border rounded-xl px-4 py-3 text-sm placeholder-opacity-70 focus:ring-0 focus:border-blue-500/40 transition-colors"
                     id="authPassword" type="password" placeholder="Password"
                     onkeydown="if(event.key==='Enter') AuthUI.handleSubmit()" />
             </div>
 
-            <button class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:brightness-110 transition-all"
+            <button
+                class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:brightness-110 transition-all"
                 id="authSubmitBtn" onclick="AuthUI.handleSubmit()">Sign In</button>
 
-            <p class="text-center text-xs text-slate-500" id="authToggleText">
-                No account? <button class="text-blue-400 hover:text-blue-300 font-medium" onclick="AuthUI.toggleMode()">Register</button>
+            <p class="text-center text-xs text-theme-muted" id="authToggleText">
+                No account? <button class="text-blue-400 hover:text-blue-300 font-medium"
+                    onclick="AuthUI.toggleMode()">Register</button>
             </p>
         </div>
     </div>
 
     <!-- History Panel -->
-    <div class="fixed top-0 right-0 h-full w-80 z-40 glass-card border-l border-white/5 translate-x-full flex flex-col" id="historyPanel">
-        <div class="flex items-center justify-between p-4 border-b border-white/5">
+    <div class="fixed top-0 right-0 h-full w-80 z-40 glass-card border-l border-glass-border translate-x-full flex flex-col"
+        id="historyPanel">
+        <div class="flex items-center justify-between p-4 border-b border-theme-divider">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-blue-400/80 text-lg">history</span>
-                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">History</h3>
+                <h3 class="text-sm font-semibold text-theme-primary uppercase tracking-wider">History</h3>
             </div>
-            <button class="text-slate-500 hover:text-white transition-colors" onclick="History.close()">
+            <button class="text-theme-muted hover:text-theme-heading transition-colors" onclick="History.close()">
                 <span class="material-symbols-outlined text-[20px]">chevron_right</span>
             </button>
         </div>
@@ -438,9 +620,9 @@
         <div class="flex-1 overflow-y-auto p-4 space-y-2" id="historyList"></div>
 
         <div class="p-6 text-center" id="historyEmpty">
-            <span class="material-symbols-outlined text-slate-700 text-3xl mb-2">inbox</span>
-            <p class="text-xs text-slate-600">No history yet.</p>
-            <p class="text-xs text-slate-700 mt-1">Process some text to see it here.</p>
+            <span class="material-symbols-outlined text-theme-muted text-3xl mb-2">inbox</span>
+            <p class="text-xs text-theme-secondary">No history yet.</p>
+            <p class="text-xs text-theme-muted mt-1">Process some text to see it here.</p>
         </div>
     </div>
 
@@ -878,6 +1060,7 @@
             URL.revokeObjectURL(url);
         }
     </script>
+    <script src="/static/theme.js"></script>
     <script src="/static/auth.js"></script>
     <script src="/static/history.js"></script>
 </body>
