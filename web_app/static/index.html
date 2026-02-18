@@ -12,6 +12,8 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <style type="text/tailwindcss">
         :root {
             /* Base Colors & Backgrounds */
@@ -296,6 +298,9 @@
             background-color: var(--btn-secondary-hover-bg);
             border-color: var(--btn-secondary-hover-border);
         }
+        .hover-theme-bg:hover {
+            background-color: var(--btn-glass-hover);
+        }
     </style>
 </head>
 
@@ -528,11 +533,30 @@
                                 onclick="copyResult()" id="copyBtn">
                                 <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
                             </button>
-                            <button
-                                class="text-xs text-emerald-300 hover:text-white flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors"
-                                onclick="downloadResult()">
-                                <span class="material-symbols-outlined text-[14px]">download</span> Download
-                            </button>
+
+                            <!-- Download Dropdown -->
+                            <div class="relative group z-50">
+                                <button
+                                    class="text-xs text-emerald-300 hover:text-white flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors">
+                                    <span class="material-symbols-outlined text-[14px]">download</span> Download
+                                    <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+                                </button>
+                                <div
+                                    class="hidden group-hover:block absolute right-0 top-full mt-1 w-32 bg-theme-navbar backdrop-blur-xl border border-theme-divider rounded-lg shadow-xl overflow-hidden animate-fade-in">
+                                    <button onclick="Export.downloadTxt(document.getElementById('finalResult').value)"
+                                        class="w-full text-left px-4 py-2 text-xs text-theme-secondary hover:text-theme-heading hover-theme-bg flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[14px]">description</span> .TXT
+                                    </button>
+                                    <button onclick="Export.downloadDocx(document.getElementById('finalResult').value)"
+                                        class="w-full text-left px-4 py-2 text-xs text-theme-secondary hover:text-theme-heading hover-theme-bg flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[14px]">article</span> .DOCX
+                                    </button>
+                                    <button onclick="Export.downloadPdf(document.getElementById('finalResult').value)"
+                                        class="w-full text-left px-4 py-2 text-xs text-theme-secondary hover:text-theme-heading hover-theme-bg flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[14px]">picture_as_pdf</span> .PDF
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1036,31 +1060,23 @@
             document.getElementById('rawText').value = '';
         }
 
-        function copyResult() {
+        async function copyResult() {
             const text = document.getElementById('finalResult').value;
-            navigator.clipboard.writeText(text).then(() => {
+            if (!text) return;
+
+            try {
+                await navigator.clipboard.writeText(text);
                 const btn = document.getElementById('copyBtn');
                 const originalHTML = btn.innerHTML;
                 btn.innerHTML = `<span class="material-symbols-outlined text-[14px]">check</span> Copied`;
                 setTimeout(() => btn.innerHTML = originalHTML, 2000);
-            });
-        }
-
-        function downloadResult() {
-            const text = document.getElementById('finalResult').value;
-            if (!text) return;
-            const blob = new Blob([text], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'rewritten_text.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
         }
     </script>
     <script src="/static/theme.js"></script>
+    <script src="/static/export.js"></script>
     <script src="/static/auth.js"></script>
     <script src="/static/history.js"></script>
 </body>
