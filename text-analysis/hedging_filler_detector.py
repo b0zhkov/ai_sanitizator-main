@@ -21,7 +21,7 @@ import pandas as pd
 
 import clean_text_getter
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import _paths  # noqa: E402 — centralised path setup
 import shared_nlp
 
 nlp = None

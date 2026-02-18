@@ -1,9 +1,7 @@
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'changes-log'))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'text-analysis')))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'text-rewriting')))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import _paths  # noqa: E402 — centralised path setup
 from typing import Optional
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,

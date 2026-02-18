@@ -6,7 +6,7 @@ analysis folder to import the cleaned text.
 """
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import _paths  # noqa: E402 — centralised path setup
 
 from text_sanitization.normalizator import normalize_punctuation
 from text_sanitization.strip_inv_chars import sanitize_text

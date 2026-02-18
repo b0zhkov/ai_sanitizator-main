@@ -19,7 +19,7 @@ import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
 import clean_text_getter
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import _paths  # noqa: E402 — centralised path setup
 
 try:
     nltk.data.find('tokenizers/punkt')

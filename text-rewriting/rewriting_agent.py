@@ -21,8 +21,7 @@ import json
 import traceback
 import re
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'text-analysis')))
+import _paths  # noqa: E402 — centralised path setup
 
 import llm_info
 from prompts import rewriting_prompt

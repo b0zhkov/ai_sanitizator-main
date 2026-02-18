@@ -15,7 +15,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 import csv
 
-sys.path.append(os.path.dirname(__file__))
+import _paths  # noqa: E402 — centralised path setup
 import hedging_filler_detector as hedging
 import repetition_detection as repetition
 import uniform_sentence_len as uniform
@@ -25,7 +25,6 @@ import punctuation_checker
 import ai_phrase_detector
 import llm_info
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class CritiqueSchema(BaseModel):
     validation_of_stats: dict = Field(description="Verification of the algorithmically detected hedging, repetition, variance, readability, verb usage, and punctuation.")

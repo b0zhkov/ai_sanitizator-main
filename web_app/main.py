@@ -1,23 +1,19 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-import json
-import asyncio
-from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
+import json
+import _paths
 import shutil
+import asyncio
 import tempfile
 from typing import List, Optional
+from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 
 sys.path.insert(0, project_root)
-sys.path.insert(0, os.path.join(project_root, 'text_sanitization'))
-sys.path.insert(0, os.path.join(project_root, 'text_sanitization', 'changes-log'))
-sys.path.insert(0, os.path.join(project_root, 'text-analysis'))
-sys.path.insert(0, os.path.join(project_root, 'text-rewriting'))
 
 try:
     from changes_log import build_changes_log, Change
