@@ -34,17 +34,17 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
             box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.6);
         }
-        textarea::-webkit-scrollbar {
+        textarea::-webkit-scrollbar, .diff-view::-webkit-scrollbar {
             width: 6px;
         }
-        textarea::-webkit-scrollbar-track {
+        textarea::-webkit-scrollbar-track, .diff-view::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.01);
         }
-        textarea::-webkit-scrollbar-thumb {
+        textarea::-webkit-scrollbar-thumb, .diff-view::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.08);
             border-radius: 99px;
         }
-        textarea::-webkit-scrollbar-thumb:hover {
+        textarea::-webkit-scrollbar-thumb:hover, .diff-view::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.15);
         }
         .input-glow:focus-within {
@@ -72,6 +72,61 @@
         }
         .btn-glow-blue {
              box-shadow: 0 0 25px rgba(29, 78, 216, 0.25);
+        }
+        .diff-added {
+            background: rgba(34, 197, 94, 0.12);
+            color: #86efac;
+            border-left: 2px solid rgba(34, 197, 94, 0.4);
+            padding: 1px 4px;
+        }
+        .diff-removed {
+            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+            text-decoration: line-through;
+            border-left: 2px solid rgba(239, 68, 68, 0.4);
+            padding: 1px 4px;
+        }
+        .diff-view {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .strength-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 99px;
+            outline: none;
+            background: linear-gradient(to right, #22c55e, #eab308, #ef4444);
+        }
+        .strength-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0,0,0,0.4);
+        }
+        .para-score {
+            transition: all 0.2s ease;
+        }
+        .para-score:hover {
+            transform: scale(1.02);
+        }
+        .tab-active {
+            border-bottom: 2px solid #3b82f6;
+            color: white;
+        }
+        .tab-inactive {
+            border-bottom: 2px solid transparent;
+            color: #64748b;
+        }
+        .tab-inactive:hover {
+            color: #94a3b8;
         }
     </style>
 </head>
@@ -146,6 +201,25 @@
                 </div>
             </div>
 
+            <!-- Strength Slider -->
+            <div class="mt-6 bg-slate-900/40 border border-slate-800/40 rounded-xl p-4" id="strengthControl">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-purple-400/80 text-[18px]">tune</span>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Humanization Strength</span>
+                    </div>
+                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full" id="strengthLabel"
+                        style="background: rgba(234, 179, 8, 0.15); color: #facc15;">Medium</span>
+                </div>
+                <input type="range" min="0" max="2" value="1" class="w-full strength-slider" id="strengthSlider"
+                    oninput="updateStrengthLabel(this.value)" />
+                <div class="flex justify-between text-[10px] text-slate-600 mt-1 px-0.5">
+                    <span>Light</span>
+                    <span>Medium</span>
+                    <span>Aggressive</span>
+                </div>
+            </div>
+
             <div class="mt-10 flex flex-col md:flex-row gap-5 justify-center items-stretch md:items-center">
                 <button
                     class="group relative flex items-center justify-center gap-4 px-6 py-4 bg-slate-900/60 border border-slate-700/50 rounded-xl hover:bg-slate-800 hover:border-amber-500/30 btn-glow-gold transition-all duration-300 w-full md:w-64"
@@ -206,6 +280,15 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="metricsGrid"></div>
             </div>
 
+            <!-- Per-Paragraph Analysis -->
+            <div class="hidden glass-card rounded-2xl p-5" id="paraAnalysisPanel">
+                <div class="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
+                    <span class="material-symbols-outlined text-violet-400 text-sm">format_list_numbered</span>
+                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Per-Paragraph Analysis</h3>
+                </div>
+                <div class="space-y-2" id="paraAnalysisGrid"></div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Original / Cleaned Column -->
                 <div class="glass-card rounded-2xl p-5 flex flex-col h-full">
@@ -224,21 +307,37 @@
                     <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 pointer-events-none">
                     </div>
 
+                    <!-- Tabs: Text / Diff -->
                     <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-3 relative z-10">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-blue-400 text-sm">psychology</span>
-                            <h3 class="text-sm font-semibold text-white uppercase tracking-wider">Final Output</h3>
+                        <div class="flex items-center gap-4">
+                            <button class="text-sm font-semibold pb-1 tab-active transition-colors" id="tabText"
+                                onclick="switchTab('text')">
+                                <span class="material-symbols-outlined text-[14px] align-middle mr-1">psychology</span>Final Output
+                            </button>
+                            <button class="text-sm font-semibold pb-1 tab-inactive transition-colors" id="tabDiff"
+                                onclick="switchTab('diff')">
+                                <span class="material-symbols-outlined text-[14px] align-middle mr-1">compare</span>Diff View
+                            </button>
                         </div>
-                        <button
-                            class="text-xs text-blue-300 hover:text-white flex items-center gap-1 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500/20 transition-colors"
-                            onclick="copyResult()">
-                            <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="text-xs text-blue-300 hover:text-white flex items-center gap-1 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500/20 transition-colors"
+                                onclick="copyResult()" id="copyBtn">
+                                <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+                            </button>
+                            <button
+                                class="text-xs text-emerald-300 hover:text-white flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors"
+                                onclick="downloadResult()">
+                                <span class="material-symbols-outlined text-[14px]">download</span> Download
+                            </button>
+                        </div>
                     </div>
 
                     <textarea
                         class="w-full flex-grow bg-transparent border-none text-slate-200 text-sm leading-relaxed resize-none focus:ring-0 p-0 relative z-10 min-h-[250px]"
                         id="finalResult" readonly></textarea>
+
+                    <div class="hidden diff-view overflow-y-auto relative z-10 min-h-[250px] max-h-[400px]" id="diffView"></div>
                 </div>
             </div>
 
@@ -264,6 +363,29 @@
     </div>
 
     <script>
+        let _originalText = '';
+        let _rewrittenText = '';
+
+        const STRENGTH_MAP = ['light', 'medium', 'aggressive'];
+        const STRENGTH_COLORS = {
+            light: { bg: 'rgba(34, 197, 94, 0.15)', fg: '#4ade80' },
+            medium: { bg: 'rgba(234, 179, 8, 0.15)', fg: '#facc15' },
+            aggressive: { bg: 'rgba(239, 68, 68, 0.15)', fg: '#f87171' }
+        };
+
+        function updateStrengthLabel(val) {
+            const name = STRENGTH_MAP[val];
+            const label = document.getElementById('strengthLabel');
+            const colors = STRENGTH_COLORS[name];
+            label.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+            label.style.background = colors.bg;
+            label.style.color = colors.fg;
+        }
+
+        function getStrength() {
+            return STRENGTH_MAP[document.getElementById('strengthSlider').value];
+        }
+
         const fileInput = document.getElementById('fileInput');
 
         fileInput.addEventListener('change', async (e) => {
@@ -276,7 +398,6 @@
             document.getElementById('loading').style.display = 'block';
 
             try {
-                // Actual API Call to /api/upload
                 const response = await fetch('/api/upload', {
                     method: 'POST',
                     body: formData
@@ -304,12 +425,15 @@
                 return;
             }
 
+            _originalText = text;
+
             document.getElementById('loading').style.display = 'block';
             document.getElementById('input-panel').classList.add('opacity-50', 'pointer-events-none');
 
             const formData = new FormData();
             formData.append('action', action);
             formData.append('text', text);
+            formData.append('strength', getStrength());
 
             try {
                 const response = await fetch('/api/process', {
@@ -323,7 +447,6 @@
                 }
 
                 if (action === 'rewrite') {
-                    // Initialize UI for streaming
                     document.getElementById('results-panel').classList.remove('hidden');
                     document.getElementById('input-panel').classList.add('hidden');
 
@@ -343,7 +466,6 @@
                         buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split('\n');
 
-                        // Keep the last incomplete line in the buffer
                         buffer = lines.pop() || '';
 
                         for (const line of lines) {
@@ -367,14 +489,12 @@
                     }
 
                 } else {
-                    // Standard JSON response for 'clean'
                     const data = await response.json();
                     showResults(data, action);
                 }
 
             } catch (err) {
                 alert('Error processing text: ' + err.message);
-                // Only hide results if we failed completely
                 if (document.getElementById('results-panel').classList.contains('hidden')) {
                     document.getElementById('input-panel').classList.remove('opacity-50', 'pointer-events-none');
                 }
@@ -414,6 +534,7 @@
             document.getElementById('cleanResult').value = data.clean_text;
 
             if (action === 'rewrite') {
+                _rewrittenText = data.rewritten_text;
                 document.getElementById('finalResult').value = data.rewritten_text;
 
                 const originalScore = data.original_text_ai_score;
@@ -430,11 +551,16 @@
 
                 if (data.rewritten_metrics) {
                     renderMetrics(data.rewritten_metrics);
+                    renderParaAnalysis(data.clean_text, data.rewritten_text, data.rewritten_metrics);
                 }
+
+                buildDiffView(data.clean_text, data.rewritten_text);
+
             } else {
                 document.getElementById('finalResult').value = data.clean_text;
                 document.getElementById('aiScore').classList.add('hidden');
                 document.getElementById('metricsPanel').classList.add('hidden');
+                document.getElementById('paraAnalysisPanel').classList.add('hidden');
             }
 
             const logDiv = document.getElementById('changesLog');
@@ -511,11 +637,122 @@
             });
         }
 
+        // Per-Paragraph Analysis (Step 7)
+        function renderParaAnalysis(originalText, rewrittenText, metrics) {
+            const panel = document.getElementById('paraAnalysisPanel');
+            const grid = document.getElementById('paraAnalysisGrid');
+            panel.classList.remove('hidden');
+            grid.innerHTML = '';
+
+            const paragraphs = rewrittenText.split(/\n\n+/).filter(p => p.trim().length > 0);
+            if (paragraphs.length <= 1) {
+                panel.classList.add('hidden');
+                return;
+            }
+
+            paragraphs.forEach((para, i) => {
+                const wordCount = para.split(/\s+/).length;
+                const sentences = para.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+                const avgSentLen = sentences.length > 0 ? Math.round(wordCount / sentences.length) : wordCount;
+
+                const hasAiPhrase = (metrics.ai_phrases?.phrases || []).some(p => para.toLowerCase().includes(p));
+                const sentLengths = sentences.map(s => s.split(/\s+/).length);
+                const variance = sentLengths.length > 1 ?
+                    Math.round(sentLengths.reduce((sum, len) => sum + Math.pow(len - avgSentLen, 2), 0) / sentLengths.length) : 0;
+
+                let score = 'good';
+                let scoreLabel = 'Natural';
+                let scoreColor = 'emerald';
+                if (hasAiPhrase) { score = 'bad'; scoreLabel = 'AI Phrase'; scoreColor = 'red'; }
+                else if (variance < 5 && sentences.length > 2) { score = 'warn'; scoreLabel = 'Uniform'; scoreColor = 'amber'; }
+                else if (avgSentLen > 25) { score = 'warn'; scoreLabel = 'Long sentences'; scoreColor = 'amber'; }
+
+                const div = document.createElement('div');
+                div.className = `para-score flex items-start gap-3 p-3 rounded-xl border border-${scoreColor}-500/20 bg-${scoreColor}-500/5`;
+                div.innerHTML = `
+                    <div class="flex-shrink-0 w-7 h-7 rounded-full bg-${scoreColor}-500/20 flex items-center justify-center text-${scoreColor}-400 text-xs font-bold">${i + 1}</div>
+                    <div class="flex-grow min-w-0">
+                        <p class="text-xs text-slate-400 truncate mb-1">${para.substring(0, 80)}${para.length > 80 ? '...' : ''}</p>
+                        <div class="flex gap-3 text-[10px] text-slate-500">
+                            <span>${wordCount} words</span>
+                            <span>${sentences.length} sentences</span>
+                            <span>Avg: ${avgSentLen} w/s</span>
+                        </div>
+                    </div>
+                    <span class="flex-shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-${scoreColor}-500/15 text-${scoreColor}-400">${scoreLabel}</span>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        // Diff View (Step 4)
+        function buildDiffView(original, rewritten) {
+            const diffEl = document.getElementById('diffView');
+
+            const origWords = original.split(/(\s+)/);
+            const newWords = rewritten.split(/(\s+)/);
+
+            const origSet = new Set(origWords.filter(w => w.trim()));
+            const newSet = new Set(newWords.filter(w => w.trim()));
+
+            let html = '<div class="mb-3 pb-2 border-b border-white/5">';
+            html += '<span class="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Original → Rewritten differences</span>';
+            html += '</div>';
+
+            html += '<div class="mb-4"><span class="text-[10px] uppercase tracking-wider font-semibold text-slate-600 mr-3">Original:</span>';
+            origWords.forEach(word => {
+                if (!word.trim()) { html += word; return; }
+                if (!newSet.has(word)) {
+                    html += `<span class="diff-removed">${word}</span>`;
+                } else {
+                    html += word;
+                }
+            });
+            html += '</div>';
+
+            html += '<div><span class="text-[10px] uppercase tracking-wider font-semibold text-slate-600 mr-3">Rewritten:</span>';
+            newWords.forEach(word => {
+                if (!word.trim()) { html += word; return; }
+                if (!origSet.has(word)) {
+                    html += `<span class="diff-added">${word}</span>`;
+                } else {
+                    html += word;
+                }
+            });
+            html += '</div>';
+
+            diffEl.innerHTML = html;
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            const textEl = document.getElementById('finalResult');
+            const diffEl = document.getElementById('diffView');
+            const tabText = document.getElementById('tabText');
+            const tabDiff = document.getElementById('tabDiff');
+
+            if (tab === 'text') {
+                textEl.classList.remove('hidden');
+                diffEl.classList.add('hidden');
+                tabText.className = tabText.className.replace('tab-inactive', 'tab-active');
+                tabDiff.className = tabDiff.className.replace('tab-active', 'tab-inactive');
+            } else {
+                textEl.classList.add('hidden');
+                diffEl.classList.remove('hidden');
+                tabDiff.className = tabDiff.className.replace('tab-inactive', 'tab-active');
+                tabText.className = tabText.className.replace('tab-active', 'tab-inactive');
+            }
+        }
+
         function reset() {
             document.getElementById('results-panel').classList.add('hidden');
             document.getElementById('input-panel').classList.remove('hidden');
             document.getElementById('rawText').value = '';
             document.getElementById('fileInput').value = '';
+            document.getElementById('paraAnalysisPanel').classList.add('hidden');
+            switchTab('text');
+            _originalText = '';
+            _rewrittenText = '';
         }
 
         function clearText() {
@@ -525,11 +762,25 @@
         function copyResult() {
             const text = document.getElementById('finalResult').value;
             navigator.clipboard.writeText(text).then(() => {
-                const btn = document.querySelector('button[onclick="copyResult()"]');
+                const btn = document.getElementById('copyBtn');
                 const originalHTML = btn.innerHTML;
                 btn.innerHTML = `<span class="material-symbols-outlined text-[14px]">check</span> Copied`;
                 setTimeout(() => btn.innerHTML = originalHTML, 2000);
             });
+        }
+
+        function downloadResult() {
+            const text = document.getElementById('finalResult').value;
+            if (!text) return;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'rewritten_text.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>

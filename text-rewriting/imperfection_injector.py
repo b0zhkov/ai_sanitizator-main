@@ -13,15 +13,12 @@ decrease the uniformity of the text.
 """
 import re
 import random
+import os
+import sys
 from typing import List, Tuple, Optional
 
-try:
-    import spacy
-    import spacy.cli
-except ImportError:
-    spacy = None
-
-_nlp = None
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import shared_nlp
 
 _THAT_DROP_RATE = 0.50       
 _PARAGRAPH_MERGE_RATE = 0.20 
@@ -30,19 +27,7 @@ _MIN_PARA_WORDS = 40
 _SAFE_HEAD_POS = {"VERB", "ADJ", "NOUN"}
 
 def _get_nlp():
-    global _nlp
-    if spacy is None:
-        return None
-        
-    if _nlp is None:
-        try:
-            _nlp = spacy.load("en_core_web_sm", disable=["ner", "lemmatizer", "textcat", "entity_linker"])
-        except OSError:
-            print("Downloading spacy model en_core_web_sm...")
-            spacy.cli.download("en_core_web_sm")
-            _nlp = spacy.load("en_core_web_sm", disable=["ner", "lemmatizer", "textcat", "entity_linker"])
-            
-    return _nlp
+    return shared_nlp.get_nlp_light()
 
 
 def _cleanup_spaces(text: str) -> str:

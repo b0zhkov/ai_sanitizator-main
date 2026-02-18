@@ -22,6 +22,7 @@ import pandas as pd
 import clean_text_getter
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import shared_nlp
 
 nlp = None
 matcher = None
@@ -34,10 +35,9 @@ def _initialize_spacy():
     if nlp is not None:
         return
 
-    import spacy
     from spacy.matcher import PhraseMatcher
 
-    nlp = spacy.load("en_core_web_sm")
+    nlp = shared_nlp.get_nlp_full()
     df = pd.read_csv(os.path.join(os.path.dirname(__file__), "excess_words.csv"))
 
     style_words = df[df['type'] == 'style']['word'].tolist()

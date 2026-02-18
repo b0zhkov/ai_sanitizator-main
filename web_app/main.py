@@ -38,7 +38,7 @@ async def read_index():
     return FileResponse(os.path.join(current_dir, 'static', 'index.html'))
 
 @app.post("/api/process")
-async def process_text(action: str = Form(...), text: str = Form(...)):
+async def process_text(action: str = Form(...), text: str = Form(...), strength: str = Form("medium")):
     try:
         if not text:
             raise HTTPException(status_code=400, detail="No text provided")
@@ -110,7 +110,7 @@ async def process_text(action: str = Form(...), text: str = Form(...)):
                 }) + "\n"
 
                 t3 = time.time()
-                rewritten_text_final = await asyncio.to_thread(humanize, raw_rewritten_text)
+                rewritten_text_final = await asyncio.to_thread(humanize, raw_rewritten_text, strength)
                 print(f"[TIMING] Humanization (Post-processing) took: {time.time() - t3:.2f}s")
 
                 yield json.dumps({

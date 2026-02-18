@@ -36,6 +36,12 @@ TRANSITION_REPLACE_RATE = 0.40
 CONJUNCTION_RATE = 0.12
 VOCABULARY_SWAP_RATE = 0.85
 
+STRENGTH_PRESETS = {
+    "light":      {"vocab": 0.40, "transition_drop": 0.15, "transition_replace": 0.20, "conjunction": 0.05},
+    "medium":     {"vocab": 0.85, "transition_drop": 0.30, "transition_replace": 0.40, "conjunction": 0.12},
+    "aggressive": {"vocab": 1.00, "transition_drop": 0.50, "transition_replace": 0.60, "conjunction": 0.20},
+}
+
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 _SENTENCE_BOUNDARY = re.compile(r'(?<=[.!?])\s+')
 _CONJUNCTION_WORDS = frozenset({"and", "but", "or", "so", "yet", "nor", "for"})
@@ -241,9 +247,17 @@ def _downgrade_vocabulary(text: str) -> str:
     return text
 
 
-def humanize(text: str) -> str:
+def humanize(text: str, strength: str = "medium") -> str:
     if not text or not text.strip():
         return text
+
+    global VOCABULARY_SWAP_RATE, TRANSITION_DROP_RATE, TRANSITION_REPLACE_RATE, CONJUNCTION_RATE
+
+    preset = STRENGTH_PRESETS.get(strength, STRENGTH_PRESETS["medium"])
+    VOCABULARY_SWAP_RATE = preset["vocab"]
+    TRANSITION_DROP_RATE = preset["transition_drop"]
+    TRANSITION_REPLACE_RATE = preset["transition_replace"]
+    CONJUNCTION_RATE = preset["conjunction"]
 
     _load_csv_data()
 
