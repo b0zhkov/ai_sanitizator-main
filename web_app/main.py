@@ -132,7 +132,6 @@ async def process_text(action: str = Form(...), text: str = Form(...), strength:
 
                 print(f"[TIMING] Results ready at: {time.time() - t0:.2f}s")
 
-                # Send results immediately — don't wait for the LLM critique
                 yield json.dumps({
                     "type": "done",
                     "data": {
@@ -143,7 +142,6 @@ async def process_text(action: str = Form(...), text: str = Form(...), strength:
                     }
                 }) + "\n"
 
-                # Now wait for the LLM critique (runs in background since line 82)
                 t5 = time.time()
                 try:
                     llm_critique = await critique_task
@@ -153,7 +151,6 @@ async def process_text(action: str = Form(...), text: str = Form(...), strength:
                 print(f"[TIMING] LLM Critique waited: {time.time() - t5:.2f}s")
                 print(f"[TIMING] Total Process took: {time.time() - t0:.2f}s")
 
-                # Send the AI score as a late event
                 yield json.dumps({
                     "type": "ai_score",
                     "data": {
