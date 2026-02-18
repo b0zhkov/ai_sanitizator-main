@@ -1,3 +1,15 @@
+"""
+The document loading module handles the importing for various file formats.
+
+I have combined the importing logic into a single file to make it easier to maintain and follow DRY.
+
+It achieves this by:
+1. Mapping file extensions to specific loader functions (.txt, .docx, .html, .pdf).
+2. utilizing specialized libraries like BeautifulSoup, docx2txt, and pypdf to extract text.
+3. implementing error handling for unsupported formats and loading failures.
+
+The end goal is to abstract away the file reading complexity and return a clean string.
+"""
 import os
 from bs4 import BeautifulSoup
 import docx2txt

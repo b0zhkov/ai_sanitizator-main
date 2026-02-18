@@ -1,3 +1,26 @@
+"""
+This file is the last step before presenting the rewritten text to the user.
+
+This file orchestrates the entire "humanization" pipeline by applying a series of
+transformations designed to degrade the "perfect" quality of AI text into something
+more organic and flawed. It serves as the main entry point that coordinates
+specialized sub-modules (like structure breaking and perplexity enhancement) with
+its own internal logic.
+
+It achieves this through a layered process:
+1. Systemically replaces complex, "university-level" words with simpler, conversational alternatives (e.g., "utilize" -> "use") using `vocab_swaps.csv`.
+2. Aggressively converts full two-word pairs (e.g., "do not", "they are") into their contracted forms ("don't", "they're") to sound less formal.
+3. Identifies formal transitions (e.g., "Furthermore," "In conclusion") and either deletes them or replaces them with casual alternatives (e.g., "Also," "So").
+4. Calls external modules to break sentence structures, inject imperfections, and enhance perplexity.
+
+Technical Realization:
+The module loads several CSV databases upon first use (`_load_csv_data`) to build lookup dictionaries.
+The `humanize()` function acts as the master controller, passing the text through each transformation 
+function sequentially. It uses regex substitution with custom callback functions (`_make_vocabulary_replacer`)
+to handle case-preservation during replacements. The order of operations is critical: vocabulary and 
+contractions are fixed first to establish a "base" conversational tone, before the heavier structural 
+changes are applied by the imported modules.
+"""
 import re
 import os
 import csv

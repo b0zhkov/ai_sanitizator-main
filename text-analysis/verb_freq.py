@@ -1,4 +1,15 @@
-from typing import Dict, List, Tuple
+"""
+The verb frequency analyzer checks for the usage of specific "AI-favored" verbs
+like "delve", "leverage", and "facilitate" which LLMs tend to overuse.
+
+It achieves this by:
+1. Using Spacy for Part-of-Speech tagging to identify verbs.
+2. comparing lemmatized verbs against a known blocklist of AI favorites.
+3. calculating the density of these verbs in the text.
+
+The end goal is to encourage more natural and varied vocabulary.
+"""
+from typing import Dict
 import spacy
 
 AI_FAVORED_VERBS = {

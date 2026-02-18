@@ -31,14 +31,6 @@ except ImportError as e:
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 
 @app.get("/")

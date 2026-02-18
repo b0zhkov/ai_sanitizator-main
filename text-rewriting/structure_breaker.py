@@ -1,3 +1,23 @@
+"""
+The structure breaker module is responsible for the disruption of AI patterns.
+
+The end goal is to increase the burstiness of the text and make it less predictable.
+
+
+It achieves this through several randomized operations:
+1. Breaks compound sentences at conjunctions (and, but, because) to create punchier, shorter statements.
+2. Merges short sentences using dashes or conjunctions to create longer, more complex thoughts.
+3. Moves subordinate clauses from the end of a sentence to the beginning (e.g., "I went home because it rained" -> "Because it rained, I went home").
+4. Swaps predictable commas for more expressive punctuation like em-dashes (—) or semicolons (;).
+
+Regex patterns are the core components used to identify sentence boundaries, conjunctions 
+and subordinate clauses. It processes text paragraph by paragraph to maintain context, 
+first splitting excessively long sentences based on a character threshold
+then conditionally merging short ones. Finally, it applies clause reordering and 
+punctuation swaps based on the probability constants defined in the module.
+
+The end goal of this module is to assist with breaking the uniformity of AI text.
+"""
 import re
 import random
 from typing import List, Tuple
@@ -35,7 +55,6 @@ _SAFE_TO_LOWERCASE = frozenset({
 })
 
 def _split_into_sentences(text: str) -> List[str]:
-    """Split text into sentences on sentence-ending punctuation."""
     return [s for s in _SENTENCE_BOUNDARY.split(text) if s.strip()]
 
 
@@ -46,21 +65,15 @@ def _capitalize_first(text: str) -> str:
 
 
 def _lowercase_first_if_safe(text: str) -> str:
-    """Lowercase the first character unless it looks like a proper noun or acronym."""
     if not text:
         return text
     first_word = text.split()[0].rstrip('.,;:!?')
 
-    # Always lowercase known common words
     if first_word.lower() in _SAFE_TO_LOWERCASE:
         return text[0].lower() + text[1:]
 
-    # Likely a proper noun / acronym — keep as-is (e.g. "Dr.", "NASA", "AI")
     if len(first_word) <= 2 or first_word.isupper():
         return text
-
-    # Regular word that just happened to start a sentence — lowercase it
-    # e.g. "Conditions" → "conditions", "Factories" → "factories"
     if first_word[0].isupper() and first_word[1:].islower():
         return text[0].lower() + text[1:]
 
@@ -114,7 +127,6 @@ def _split_long_sentence(sentence: str) -> str:
 
 
 def _merge_short_sentences(sentences: List[str]) -> List[str]:
-    """Merge consecutive short sentences to increase length variation."""
     if len(sentences) < 3:
         return sentences
 
@@ -151,7 +163,6 @@ def _merge_short_sentences(sentences: List[str]) -> List[str]:
 
 
 def _reorder_clause(sentence: str) -> str:
-    """Occasionally move a trailing subordinate clause to the front."""
     if random.random() > _CLAUSE_REORDER_RATE:
         return sentence
 
@@ -179,7 +190,6 @@ def _reorder_clause(sentence: str) -> str:
 
 
 def _diversify_punctuation(sentence: str) -> str:
-    """Swap a comma for a dash or semicolon, validating both halves first."""
     if " — " in sentence or " – " in sentence or ";" in sentence:
         return sentence
 

@@ -1,3 +1,16 @@
+"""
+This file is responsible for injecting imperfections into the text.
+That is important because the LLM always tries to make the text sound too perfect and textbook-like.
+But this gets flagged by the detectors.
+
+The imperfections the file handles are the occasional removal (50%) of "that" when it is appropriate.
+Appropriate meaning when "that" is used as a conjunction rather than a pronoun.
+
+The other imperfection is regarding paragraphs since they also like the sentences have uniformal length,
+which is not the case in human writing.
+So the logic here is to find small sub 40 word paragraphs and merge them with the following paragraph to
+decrease the uniformity of the text.
+"""
 import re
 import random
 from typing import List, Tuple, Optional

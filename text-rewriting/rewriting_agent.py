@@ -1,3 +1,20 @@
+"""
+This file is responsible for the actual rewriting of the text.
+Firstly it inicializes the LLM and creates a chain of events.
+That chain being to first get the prompt and then give it to the LLM.
+There is a safety measure against infinite loading which is to stop the rewriting process
+after 3 failed attempts.
+
+Then the rewriting process starts.
+In the prompts.py file I have explicitly asked the llm to wrap its output inside <final_text> tags which keeps
+the generic "Sure! Here is..." message out of what the user sees for a professional look.
+
+The stream_rewrite function is the one responsible for yielding the output of the LLM in chunks.
+It uses a buffer to store the output of the LLM and yields it as soon as it is safely confirmed
+to be part of the final text (maintaining a small buffer to handle the closing tag).
+This is used with the puprose to show the user, the text is being rewritten in real time,
+rather than a lengthy loading screen.
+"""
 import sys
 import os
 import json
@@ -15,31 +32,6 @@ class RewritingAgent:
     def __init__(self):
         self.llm = llm_info.llm
         self.chain = (rewriting_prompt | self.llm).with_retry(stop_after_attempt=3)
-
-    def _unused_rewrite_sync(self, text: str, analysis: dict) -> str:
-        try:
-            analysis_str = json.dumps(analysis, indent=2)
-            
-            response = self.chain.invoke({
-                "text": text,
-                "analysis": analysis_str
-            })
-            
-            if not response:
-                return "Error: No response from LLM."
-            
-            raw_content = str(response.content) if response.content is not None else ""
-            
-            match = re.search(r'<final_text>(.*?)</final_text>', raw_content, re.DOTALL)
-            if match:
-                return match.group(1).strip()
-            
-            return raw_content
-            
-        except Exception as e:
-            print(f"Rewriting Error: {str(e)}")
-            traceback.print_exc()
-            return f"Error during rewriting: {str(e)}"
 
     def stream_rewrite(self, text: str, analysis: dict):
         has_yielded_content = False

@@ -1,3 +1,16 @@
+"""
+The repetition detection module identifies recurring phrases and patterns.
+
+The main purpose is to find n-gram repetitions that make the text feel robotic
+or redundant.
+
+It achieves this by:
+1. Tokenizing the text into words.
+2. generating n-grams of specified lengths (e.g., 2-5 words).
+3. identifying and counting duplicates.
+
+The end goal is to highlight repetitive phrasing that needs variation.
+"""
 from __future__ import annotations
 
 import os

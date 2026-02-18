@@ -1,3 +1,12 @@
+"""
+This file contains the needed prompts for the rewriting process.
+
+The system one is the one responsbile for telling the llm all of the details needed to achieve the task,
+mentioned in the human prompt. 
+It utilizes certain rules (ex. The Hemingway Rule) alongside the results of the analysis to create the best results.
+
+The human one is responsible for just telling the llm about the task it needs to do.
+"""
 from langchain_core.prompts import ChatPromptTemplate
 
 SYSTEM_PROMPT = """You are a "Humanizer." Your job is to strip away AI mannerisms and output raw, authentic human text.

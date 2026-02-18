@@ -1,11 +1,18 @@
+"""
+This file serves a validation layer for all other analysis algorithms.
+
+It does that by feeding the mathematical data gathered from the other files in the folder 
+(ex. hedging_filler_detector.py, repetition_detection.py, etc.) to the imported LLM.
+
+Based on that data the LLM provides a critique, returns it as a json file and also calculates
+a score from 1.0 to 10.0 (the lower the more human the text is).
+"""
 import os
 import sys
 import json
-from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 import csv
 
 sys.path.append(os.path.dirname(__file__))
@@ -107,16 +114,12 @@ def _check_excess_words(text: str) -> dict:
         
         with open(csv_path, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
-            # Flatten the CSV list and filter empty strings
             excess_list = [word.strip().lower() for row in reader for word in row if word.strip()]
             
         for word in excess_list:
-            # Simple substring check (fast) but checking for word boundaries is better
-            # Using simple ' in ' check for performance on large lists vs regex overhead
             if f" {word} " in text_lower: 
                 flagged.append(word)
                 
-        # Limit to top 20 to avoid overwhelming the LLM context
         return {"count": len(flagged), "words": flagged[:20]}
     except Exception as e:
         return {"error": f"Failed to check excess words: {str(e)}"}

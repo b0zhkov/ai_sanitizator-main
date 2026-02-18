@@ -1,3 +1,15 @@
+"""
+The repeating headings detector finds duplicate or repetitive headers.
+
+The main purpose is to catch structural repetition which might indicate
+looping or poor document structure.
+
+It achieves this by:
+1. extracting lines that look like headings (short, capitalized, no period).
+2. checking for duplicate occurrences of these heading strings.
+
+The end goal is to ensure the document structure is unique and logical.
+"""
 import sys
 import clean_text_getter
 import repetition_detection

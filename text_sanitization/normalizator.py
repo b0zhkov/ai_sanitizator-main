@@ -1,3 +1,13 @@
+"""
+The normalizator ensures consistency in punctuation usage across the text.
+
+It achieves this by:
+1. Defining a map of replacement characters (e.g., curly quotes to straight quotes).
+2. Using regular expressions to efficiently substitute these characters in the text.
+3. Normalizing line endings to a standard newline format.
+
+The end goal is to have text with uniform punctuation, reducing noise for subsequent processing steps.
+"""
 import re
 
 REPLACEMENT_MAP = {

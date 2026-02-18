@@ -1,3 +1,14 @@
+"""
+This file has the purpose of analyzing the overall readability of the text.
+It does that by using the Flesch-Kincaid Grade Level and Flesch Reading Ease formulas.
+
+It works by splitting the text into individual paragraphs and then calculate the results for the
+above mentioned formulas for each paragraph.
+Then it calculates its standard deviation and average values.
+
+The end goal is to provide a widely known metric for readability which can help the llm judge the 
+readability of the text better.
+"""
 import numpy as np
 import textstat
 

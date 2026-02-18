@@ -1,3 +1,15 @@
+"""
+The perplexity enhancer is tackling the issue of highly-predictable words in AI-generated text.
+
+The main goal of the file is to do swap words and phrases in 3 different ways:
+Firstly to replace common and predictable adjectives with spicier alternatives.
+Secondly it replaces words like the, a, an with more unexpected alternatives.
+Finally it swaps common idioms with more semantically complex ones.
+
+The algorithms function based on probabilities mentioned below.
+
+The end goal is to have a text which varies in chosen words but also has high perplexity.
+"""
 import re
 import os
 import csv

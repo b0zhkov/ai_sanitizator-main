@@ -1,3 +1,9 @@
+"""
+This file is resposible for importing the cleaned version which was processed and cleaned by the 
+files inside of the text_sanitization folder.
+The goal is to follow the DRY priciple and to make it easier for the other files inside of the
+analysis folder to import the cleaned text.
+"""
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

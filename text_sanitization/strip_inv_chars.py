@@ -1,3 +1,16 @@
+"""
+The strip invisible characters file's main purpose is to sanitize the text by:
+1. removing hidden characters,
+2. removing tracking artifacts,
+3. removing formatting debris that do not contribute to the content.
+
+It achieves this by:
+1. defining regex patterns for invisible characters, tracking artifacts, and inline styles.
+2. applying Unicode normalization (NFKC) to ensure character consistency.
+3. attempting to fix common encoding issues using fallback encodings.
+
+The end goal is to produce a clean text stream free of invisible noise and formatting artifacts.
+"""
 import re
 import unicodedata
 

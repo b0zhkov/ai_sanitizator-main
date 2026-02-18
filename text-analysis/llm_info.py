@@ -1,3 +1,8 @@
+"""
+This file is responsible for initializing the LLM and tinker with its core parameters.
+It does that via the Langchain library.
+There is also a dedicated .env file to hide sensitive information such as API keys.
+"""
 import os
 from dotenv import load_dotenv
 from langchain_cloudflare import ChatCloudflareWorkersAI

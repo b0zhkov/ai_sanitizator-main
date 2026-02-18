@@ -1,3 +1,10 @@
+"""
+This file has the goal of count the words in each sentence and then using the numpy library
+calculate the standard deviation of the word counts.
+
+Then it measures the standard deviation on a scale to determine if the sentence length is too uniform or
+is it too burstive.
+"""
 import numpy as np
 from repetition_detection import tokenize_text_into_sentences
 

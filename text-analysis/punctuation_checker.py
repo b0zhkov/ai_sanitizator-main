@@ -1,3 +1,12 @@
+"""
+The pucntuation checker analyzes the text, then it gathers information as to what punctuation marks
+have been used throughout.
+
+The idea is to calculate a ratio of structured to conversational punctuation marks.
+
+The structured ones being more typically used by AI due to them being more formal,
+while the conversational ones are more typically used by humans.
+"""
 import re
 from typing import Dict
 
