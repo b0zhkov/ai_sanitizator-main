@@ -6,3 +6,4 @@ venv_stable/
 stable_venv/
 __pycache__/
 *.pyc
+*.db

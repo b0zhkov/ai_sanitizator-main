@@ -12,8 +12,9 @@ import asyncio
 import tempfile
 from typing import List, Optional
 from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from sqlalchemy.orm import Session
 
 current_dir = _current_dir
 project_root = _project_root
@@ -28,7 +29,22 @@ except ImportError as e:
     print(f"Error importing modules: {e}")
     pass
 
+from web_app.database import init_db, get_db
+from web_app.models import User
+from web_app.auth import get_optional_user
+from web_app.routes_auth import router as auth_router
+from web_app.routes_history import router as history_router, save_history_entry
+
 app = FastAPI()
+
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
+
+app.include_router(auth_router)
+app.include_router(history_router)
 
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 
@@ -37,7 +53,13 @@ async def read_index():
     return FileResponse(os.path.join(current_dir, 'static', 'index.html'))
 
 @app.post("/api/process")
-async def process_text(action: str = Form(...), text: str = Form(...), strength: str = Form("medium")):
+async def process_text(
+    request: Request,
+    action: str = Form(...),
+    text: str = Form(...),
+    strength: str = Form("medium"),
+    db: Session = Depends(get_db),
+):
     try:
         if not text:
             raise HTTPException(status_code=400, detail="No text provided")
@@ -54,6 +76,10 @@ async def process_text(action: str = Form(...), text: str = Form(...), strength:
         ]
 
         if action == "clean":
+            user = get_optional_user(request, db)
+            if user:
+                save_history_entry(db, user.id, "clean", text, clean_text_val)
+
             return JSONResponse({
                 "clean_text": clean_text_val,
                 "changes": changes_list
@@ -131,6 +157,12 @@ async def process_text(action: str = Form(...), text: str = Form(...), strength:
                 })
 
                 print(f"[TIMING] Results ready at: {time.time() - t0:.2f}s")
+
+                user = get_optional_user(request, db)
+                if user:
+                    save_history_entry(
+                        db, user.id, "rewrite", text, rewritten_text_final
+                    )
 
                 yield json.dumps({
                     "type": "done",

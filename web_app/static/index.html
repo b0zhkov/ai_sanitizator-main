@@ -128,6 +128,12 @@
         .tab-inactive:hover {
             color: #94a3b8;
         }
+        #historyPanel {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #authModal .modal-backdrop {
+            transition: opacity 0.2s ease;
+        }
     </style>
 </head>
 
@@ -139,6 +145,24 @@
                 class="flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/5 backdrop-blur-md">
                 <span class="material-symbols-outlined text-blue-400/80 text-xl">auto_fix_high</span>
                 <span class="text-sm font-medium text-slate-300 tracking-wide">AI Sanitizator</span>
+
+                <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+                <button class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                    onclick="History.toggle()" title="History">
+                    <span class="material-symbols-outlined text-[18px]">history</span>
+                </button>
+
+                <button class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                    id="authNavBtn" title="Account">
+                    <span class="material-symbols-outlined text-[18px]">person</span>
+                    <span id="authNavLabel" class="hidden sm:inline">Sign In</span>
+                </button>
+
+                <button class="hidden text-xs text-slate-500 hover:text-red-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                    id="logoutBtn" onclick="AuthUI.handleLogout()" title="Logout">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                </button>
             </div>
         </nav>
 
@@ -368,6 +392,58 @@
         </div>
     </div>
 
+    <!-- Auth Modal -->
+    <div class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" id="authModal">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onclick="AuthUI.closeModal()"></div>
+        <div class="glass-card rounded-2xl p-8 w-full max-w-sm relative z-10 space-y-5">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-white" id="authModalTitle">Welcome Back</h2>
+                <button class="text-slate-500 hover:text-white transition-colors" onclick="AuthUI.closeModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2" id="authError"></div>
+
+            <div class="space-y-3">
+                <input class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 focus:ring-0 focus:border-blue-500/40 transition-colors"
+                    id="authEmail" type="email" placeholder="Email address"
+                    onkeydown="if(event.key==='Enter') AuthUI.handleSubmit()" />
+                <input class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 focus:ring-0 focus:border-blue-500/40 transition-colors"
+                    id="authPassword" type="password" placeholder="Password"
+                    onkeydown="if(event.key==='Enter') AuthUI.handleSubmit()" />
+            </div>
+
+            <button class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:brightness-110 transition-all"
+                id="authSubmitBtn" onclick="AuthUI.handleSubmit()">Sign In</button>
+
+            <p class="text-center text-xs text-slate-500" id="authToggleText">
+                No account? <button class="text-blue-400 hover:text-blue-300 font-medium" onclick="AuthUI.toggleMode()">Register</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- History Panel -->
+    <div class="fixed top-0 right-0 h-full w-80 z-40 glass-card border-l border-white/5 translate-x-full flex flex-col" id="historyPanel">
+        <div class="flex items-center justify-between p-4 border-b border-white/5">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-400/80 text-lg">history</span>
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">History</h3>
+            </div>
+            <button class="text-slate-500 hover:text-white transition-colors" onclick="History.close()">
+                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-2" id="historyList"></div>
+
+        <div class="p-6 text-center" id="historyEmpty">
+            <span class="material-symbols-outlined text-slate-700 text-3xl mb-2">inbox</span>
+            <p class="text-xs text-slate-600">No history yet.</p>
+            <p class="text-xs text-slate-700 mt-1">Process some text to see it here.</p>
+        </div>
+    </div>
+
     <script>
         let _originalText = '';
         let _rewrittenText = '';
@@ -496,6 +572,7 @@
 
                 } else {
                     const data = await response.json();
+                    History.addSessionEntry(action, text, data.clean_text);
                     showResults(data, action);
                 }
 
@@ -527,6 +604,7 @@
                 finalResult.scrollTop = finalResult.scrollHeight;
             } else if (msg.type === 'done') {
                 const data = msg.data;
+                History.addSessionEntry('rewrite', _originalText, data.rewritten_text || data.clean_text);
                 showResults(data, 'rewrite');
             } else if (msg.type === 'ai_score') {
                 // Late event: AI score arrived after results were already shown
@@ -800,6 +878,8 @@
             URL.revokeObjectURL(url);
         }
     </script>
+    <script src="/static/auth.js"></script>
+    <script src="/static/history.js"></script>
 </body>
 
 </html>
