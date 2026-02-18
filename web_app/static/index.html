@@ -206,7 +206,8 @@
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-purple-400/80 text-[18px]">tune</span>
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Humanization Strength</span>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Humanization
+                            Strength</span>
                     </div>
                     <span class="text-xs font-bold px-2.5 py-0.5 rounded-full" id="strengthLabel"
                         style="background: rgba(234, 179, 8, 0.15); color: #facc15;">Medium</span>
@@ -284,7 +285,8 @@
             <div class="hidden glass-card rounded-2xl p-5" id="paraAnalysisPanel">
                 <div class="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
                     <span class="material-symbols-outlined text-violet-400 text-sm">format_list_numbered</span>
-                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Per-Paragraph Analysis</h3>
+                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Per-Paragraph Analysis
+                    </h3>
                 </div>
                 <div class="space-y-2" id="paraAnalysisGrid"></div>
             </div>
@@ -312,11 +314,14 @@
                         <div class="flex items-center gap-4">
                             <button class="text-sm font-semibold pb-1 tab-active transition-colors" id="tabText"
                                 onclick="switchTab('text')">
-                                <span class="material-symbols-outlined text-[14px] align-middle mr-1">psychology</span>Final Output
+                                <span
+                                    class="material-symbols-outlined text-[14px] align-middle mr-1">psychology</span>Final
+                                Output
                             </button>
                             <button class="text-sm font-semibold pb-1 tab-inactive transition-colors" id="tabDiff"
                                 onclick="switchTab('diff')">
-                                <span class="material-symbols-outlined text-[14px] align-middle mr-1">compare</span>Diff View
+                                <span class="material-symbols-outlined text-[14px] align-middle mr-1">compare</span>Diff
+                                View
                             </button>
                         </div>
                         <div class="flex items-center gap-2">
@@ -337,7 +342,8 @@
                         class="w-full flex-grow bg-transparent border-none text-slate-200 text-sm leading-relaxed resize-none focus:ring-0 p-0 relative z-10 min-h-[250px]"
                         id="finalResult" readonly></textarea>
 
-                    <div class="hidden diff-view overflow-y-auto relative z-10 min-h-[250px] max-h-[400px]" id="diffView"></div>
+                    <div class="hidden diff-view overflow-y-auto relative z-10 min-h-[250px] max-h-[400px]"
+                        id="diffView"></div>
                 </div>
             </div>
 
@@ -522,6 +528,18 @@
             } else if (msg.type === 'done') {
                 const data = msg.data;
                 showResults(data, 'rewrite');
+            } else if (msg.type === 'ai_score') {
+                // Late event: AI score arrived after results were already shown
+                const score = msg.data.score;
+                const scoreEl = document.getElementById('aiScore');
+                const getScoreClass = (s) => s >= 7 ? 'text-red-400' : (s >= 4 ? 'text-amber-400' : 'text-emerald-400');
+                const getBorderClass = (s) => s >= 7 ? 'border-red-500/30' : (s >= 4 ? 'border-amber-500/30' : 'border-emerald-500/30');
+
+                scoreEl.innerHTML = `
+                    <span class="text-slate-400 font-medium mr-2">Original AI Score:</span>
+                    <span class="${getScoreClass(score)}">${score}/10</span>
+                `;
+                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border ${getBorderClass(score)} rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-flex items-center justify-center transition-all duration-500`;
             } else if (msg.type === 'error') {
                 console.error(msg.data);
             }
@@ -537,17 +555,16 @@
                 _rewrittenText = data.rewritten_text;
                 document.getElementById('finalResult').value = data.rewritten_text;
 
-                const originalScore = data.original_text_ai_score;
+                // Show AI score badge in "calculating" state — actual score arrives via ai_score event
                 const scoreEl = document.getElementById('aiScore');
-                const getScoreClass = (s) => s >= 7 ? 'text-red-400' : (s >= 4 ? 'text-amber-400' : 'text-emerald-400');
-                const getBorderClass = (s) => s >= 7 ? 'border-red-500/30' : (s >= 4 ? 'border-amber-500/30' : 'border-emerald-500/30');
-
                 scoreEl.classList.remove('hidden');
                 scoreEl.innerHTML = `
                     <span class="text-slate-400 font-medium mr-2">Original AI Score:</span>
-                    <span class="${getScoreClass(originalScore)}">${originalScore}/10</span>
+                    <span class="text-slate-500 animate-pulse flex items-center gap-2">
+                        <span class="loader h-3 w-3 border-t-slate-400"></span> Calculating...
+                    </span>
                 `;
-                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border ${getBorderClass(originalScore)} rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-flex items-center justify-center`;
+                scoreEl.className = `bg-slate-900/80 backdrop-blur-md border border-slate-700/30 rounded-full px-6 py-2 text-sm font-bold shadow-lg inline-flex items-center justify-center`;
 
                 if (data.rewritten_metrics) {
                     renderMetrics(data.rewritten_metrics);

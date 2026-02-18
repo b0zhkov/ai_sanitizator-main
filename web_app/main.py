@@ -1,7 +1,12 @@
 import sys
 import os
+
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_project_root = os.path.dirname(_current_dir)
+sys.path.insert(0, _project_root)
+import _paths 
+
 import json
-import _paths
 import shutil
 import asyncio
 import tempfile
@@ -10,10 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-
-sys.path.insert(0, project_root)
+current_dir = _current_dir
+project_root = _project_root
 
 try:
     from changes_log import build_changes_log, Change
@@ -120,16 +123,6 @@ async def process_text(action: str = Form(...), text: str = Form(...), strength:
                 )
                 print(f"[TIMING] Verification (Metrics) took: {time.time() - t4:.2f}s")
 
-                t5 = time.time()
-                try:
-                    llm_critique = await critique_task
-                except Exception:
-                    llm_critique = {}
-                ai_score = llm_critique.get("ai_score", 0.0)
-                print(f"[TIMING] LLM Critique waited: {time.time() - t5:.2f}s")
-
-                print(f"[TIMING] Total Process took: {time.time() - t0:.2f}s")
-
                 final_changes = list(changes_list)
                 final_changes.append({
                     "description": "Applied AI Rewriting (Clean + Rewrite)  ",
@@ -137,14 +130,35 @@ async def process_text(action: str = Form(...), text: str = Form(...), strength:
                     "text_after": rewritten_text_final
                 })
 
+                print(f"[TIMING] Results ready at: {time.time() - t0:.2f}s")
+
+                # Send results immediately — don't wait for the LLM critique
                 yield json.dumps({
                     "type": "done",
                     "data": {
                         "clean_text": clean_text_val,
                         "rewritten_text": rewritten_text_final,
                         "changes": final_changes,
-                        "original_text_ai_score": ai_score,
                         "rewritten_metrics": rewritten_analysis.get("statistical_metrics", {})
+                    }
+                }) + "\n"
+
+                # Now wait for the LLM critique (runs in background since line 82)
+                t5 = time.time()
+                try:
+                    llm_critique = await critique_task
+                except Exception:
+                    llm_critique = {}
+                ai_score = llm_critique.get("ai_score", 0.0)
+                print(f"[TIMING] LLM Critique waited: {time.time() - t5:.2f}s")
+                print(f"[TIMING] Total Process took: {time.time() - t0:.2f}s")
+
+                # Send the AI score as a late event
+                yield json.dumps({
+                    "type": "ai_score",
+                    "data": {
+                        "score": ai_score,
+                        "critique": llm_critique
                     }
                 }) + "\n"
 
