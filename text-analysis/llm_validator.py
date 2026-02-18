@@ -46,6 +46,14 @@ def _collect_stats(text: str) -> dict:
     }
 
 
+def collect_stats(text: str) -> dict:
+    return _collect_stats(text)
+
+
+def get_llm_critique(text: str, stats: dict) -> dict:
+    return _get_llm_critique(text, stats)
+
+
 def validate_text(text: str) -> dict:
     stats = _collect_stats(text)
     llm_response = _get_llm_critique(text, stats)

@@ -43,7 +43,7 @@ async def process_text(action: str = Form(...), text: str = Form(...)):
         if not text:
             raise HTTPException(status_code=400, detail="No text provided")
 
-        clean_text_val, changes = build_changes_log(text)
+        clean_text_val, changes = await asyncio.to_thread(build_changes_log, text)
         
         changes_list = [
             {
@@ -62,7 +62,10 @@ async def process_text(action: str = Form(...), text: str = Form(...)):
 
         elif action == "rewrite":
             async def rewrite_stream_generator():
-                # Emit Clean Event
+                import time
+                t0 = time.time()
+                print(f"[TIMING] Start processing...")
+
                 yield json.dumps({
                     "type": "stage", 
                     "data": {
@@ -71,49 +74,69 @@ async def process_text(action: str = Form(...), text: str = Form(...)):
                     }
                 }) + "\n"
 
-                # 2. Analyze
-                analysis = await asyncio.to_thread(llm_validator.validate_text, clean_text_val)
+                t1 = time.time()
+                stats = await asyncio.to_thread(llm_validator.collect_stats, clean_text_val)
+                print(f"[TIMING] Stats collection took: {time.time() - t1:.2f}s")
+
+                critique_task = asyncio.create_task(
+                    asyncio.to_thread(llm_validator.get_llm_critique, clean_text_val, stats)
+                )
+
+                analysis_for_rewrite = {"statistical_metrics": stats, "llm_critique": None}
                 
                 yield json.dumps({
                     "type": "stage",
                     "data": { "step": "analyzed" }
                 }) + "\n"
 
-                # 3. Rewrite Stream
                 rewritten_chunks_gen = []
+                t2 = time.time()
                 try:
-                    for chunk in rewriting_agent.stream_rewrite(clean_text_val, analysis):
+                    for chunk in rewriting_agent.stream_rewrite(clean_text_val, analysis_for_rewrite):
                         if chunk and isinstance(chunk, str):
                             rewritten_chunks_gen.append(chunk)
                             yield json.dumps({"type": "chunk", "data": chunk}) + "\n"
                 except Exception as e:
                     print(f"Rewrite error: {e}")
                     yield json.dumps({"type": "error", "data": str(e)}) + "\n"
+                
+                print(f"[TIMING] Rewriting (Streaming) took: {time.time() - t2:.2f}s")
                     
                 raw_rewritten_text = "".join(rewritten_chunks_gen)
-
-                llm_critique = analysis.get("llm_critique", {})
-                ai_score = llm_critique.get("ai_score", 0.0)
 
                 yield json.dumps({
                     "type": "stage",
                     "data": { "step": "humanizing" }
                 }) + "\n"
 
-                rewritten_text_final = humanize(raw_rewritten_text)
+                t3 = time.time()
+                rewritten_text_final = await asyncio.to_thread(humanize, raw_rewritten_text)
+                print(f"[TIMING] Humanization (Post-processing) took: {time.time() - t3:.2f}s")
 
                 yield json.dumps({
                     "type": "stage",
                     "data": { "step": "verifying" }
                 }) + "\n"
 
+                t4 = time.time()
                 rewritten_analysis = await asyncio.to_thread(
                     llm_validator.verify_metrics_only, rewritten_text_final
                 )
+                print(f"[TIMING] Verification (Metrics) took: {time.time() - t4:.2f}s")
+
+                t5 = time.time()
+                try:
+                    llm_critique = await critique_task
+                except Exception:
+                    llm_critique = {}
+                ai_score = llm_critique.get("ai_score", 0.0)
+                print(f"[TIMING] LLM Critique waited: {time.time() - t5:.2f}s")
+
+                print(f"[TIMING] Total Process took: {time.time() - t0:.2f}s")
 
                 final_changes = list(changes_list)
                 final_changes.append({
-                    "description": "Applied AI Rewriting (Clean + Rewrite)",
+                    "description": "Applied AI Rewriting (Clean + Rewrite)  ",
                     "text_before": clean_text_val,
                     "text_after": rewritten_text_final
                 })
@@ -141,17 +164,25 @@ async def process_text(action: str = Form(...), text: str = Form(...)):
 
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
+    tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as tmp:
-            shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
+
+        def save_upload_file():
+            with open(tmp_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+
+        await asyncio.to_thread(save_upload_file)
             
         try:
-            content = document_loading.load_file_content(tmp_path)
+            content = await asyncio.to_thread(document_loading.load_file_content, tmp_path)
         finally:
-            if os.path.exists(tmp_path):
+            if tmp_path and os.path.exists(tmp_path):
                 os.remove(tmp_path)
         
         return {"content": content}
     except Exception as e:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
         raise HTTPException(status_code=500, detail=f"File processing failed: {str(e)}")
