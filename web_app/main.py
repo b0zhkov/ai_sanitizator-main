@@ -13,7 +13,6 @@ import tempfile
 from typing import List, Optional
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Request
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -155,7 +154,7 @@ async def process_text(
                         if chunk and isinstance(chunk, str):
                             rewritten_chunks_gen.append(chunk)
                             yield json.dumps({"type": "chunk", "data": chunk}) + "\n"
-                except Exception as e:
+                except Exception as e:  
                     print(f"Rewrite error: {e}")
                     yield json.dumps({"type": "error", "data": str(e)}) + "\n"
                 
