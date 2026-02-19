@@ -17,7 +17,7 @@ the prose by stripping out these redundancies.
 """
 import os
 import sys
-import pandas as pd
+import csv
 
 import clean_text_getter
 
@@ -39,11 +39,14 @@ def _initialize_spacy():
     from spacy.matcher import PhraseMatcher
 
     nlp = shared_nlp.get_nlp_full()
-    df = pd.read_csv(os.path.join(os.path.dirname(__file__), "excess_words.csv"))
-
-
-    style_words = df[df['type'] == 'style']['word'].tolist()
-    # content_words unused
+    
+    style_words = []
+    csv_path = os.path.join(os.path.dirname(__file__), "excess_words.csv")
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row.get('type') == 'style' and row.get('word'):
+                style_words.append(row['word'].strip())
 
     matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
 

@@ -1,11 +1,11 @@
 """
-This file has the goal of counting the words in each sentence and then using the numpy library
+This file has the goal of counting the words in each sentence and then using the built-in statistics module
 calculating the standard deviation of the word counts.
 
 Then it measures the standard deviation on a scale to determine if the sentence length is too uniform or
-is it too burstive.
+is it too bursty.
 """
-import numpy as np
+import statistics
 from repetition_detection import tokenize_text_into_sentences
 
 __all__ = ['uniform_sentence_check']
@@ -46,8 +46,13 @@ def uniform_sentence_check(text: str) -> dict:
     if len(words_per_sentence) <= 1:
         return _build_result(0, 'insufficient')
 
-    mean_length = np.mean(words_per_sentence)
-    std_dev = np.std(words_per_sentence)
+    mean_length = statistics.mean(words_per_sentence)
+    
+    # Needs at least two points to calculate sample standard deviation
+    if len(words_per_sentence) < 2:
+        std_dev = 0.0
+    else:
+        std_dev = statistics.stdev(words_per_sentence)
     
     cv = (std_dev / mean_length) if mean_length > 0 else 0.0
     
