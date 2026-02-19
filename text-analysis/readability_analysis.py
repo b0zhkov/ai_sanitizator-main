@@ -12,9 +12,23 @@ readability of the text better.
 import numpy as np
 import textstat
 
+import statistics
+from repetition_detection import tokenize_text_into_sentences
+
 def analyze_readability_variance(text: str) -> dict:
     paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
-    
+
+    # Fallback: if fewer than 2 paragraphs, try splitting into chunks of 3 sentences
+    if len(paragraphs) <= 1:
+        sentences = tokenize_text_into_sentences(text)
+        if len(sentences) >= 6:  # Need at least 2 chunks of 3
+            # Chunk sentences into groups of 3
+            chunk_size = 3
+            paragraphs = [
+                " ".join(sentences[i:i + chunk_size])
+                for i in range(0, len(sentences), chunk_size)
+            ]
+
     if len(paragraphs) <= 1:
         flesch_score = textstat.flesch_reading_ease(text)
         grade_level = textstat.flesch_kincaid_grade(text)

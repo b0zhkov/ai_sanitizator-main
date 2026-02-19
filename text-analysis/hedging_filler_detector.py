@@ -68,10 +68,13 @@ def analyze_and_filter_out(text: str):
     cleaned_tokens = [token.text_with_ws for token in doc if token.i not in to_remove]
     cleaned_text = "".join(cleaned_tokens).strip()
 
+    filler_token_count = sum(end - start for _, start, end in matches)
+    filler_density = (filler_token_count / len(doc)) * 100 if len(doc) > 0 else 0
+
     stats = {
         "original_word_count": len(doc),
         "filler_count": len(matches),
-        "filler_density": (len(matches) / len(doc)) * 100 if len(doc) > 0 else 0,
+        "filler_density": filler_density,
         "detected_fillers": list(set(found_words))
     }
 

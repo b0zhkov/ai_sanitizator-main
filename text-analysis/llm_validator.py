@@ -116,15 +116,21 @@ def _check_excess_words(text: str) -> dict:
     try:
         csv_path = os.path.join(os.path.dirname(__file__), 'excess_words.csv')
         
-        flagged = []
-        text_lower = text.lower()
+        import re
         
+        flagged = []
+        
+        # Read CSV and skip header
         with open(csv_path, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
+            next(reader, None) # Skip header
             excess_list = [word.strip().lower() for row in reader for word in row if word.strip()]
             
+        # Use regex for word boundaries
         for word in excess_list:
-            if f" {word} " in text_lower: 
+            # Escape the word mostly to be safe, though they are likely simple words
+            pattern = r'\b' + re.escape(word) + r'\b'
+            if re.search(pattern, text, re.IGNORECASE):
                 flagged.append(word)
                 
         return {"count": len(flagged), "words": flagged[:20]}

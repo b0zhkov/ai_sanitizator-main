@@ -44,6 +44,18 @@ def uniform_sentence_check(text: str) -> dict:
     if len(words_per_sentence) <= 1:
         return _build_result(0, 'insufficient')
 
-    std_dev = round(np.std(words_per_sentence), 2)
-    category = _classify_variance(std_dev)
-    return _build_result(std_dev, category)
+    mean_length = np.mean(words_per_sentence)
+    std_dev = np.std(words_per_sentence)
+    
+    cv = (std_dev / mean_length) if mean_length > 0 else 0.0
+    
+    # Update thresholds based on CV: 
+    # uniform < 0.2, moderate < 0.45, burstive > 0.45
+    if cv < 0.20:
+        category = 'uniform'
+    elif cv < 0.45:
+        category = 'moderate'
+    else:
+        category = 'burstive'
+
+    return _build_result(round(cv, 2), category)

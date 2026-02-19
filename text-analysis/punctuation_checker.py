@@ -19,10 +19,10 @@ def analyze_punctuation_structure(text: str) -> Dict[str, any]:
             "structure_ratio": 0.0
         }
 
-    structured_pattern = r'[:—•]'
+    structured_pattern = r'[;:•()]'
     structured_matches = re.findall(structured_pattern, text)
     
-    conversational_pattern = r'[;()?!]'
+    conversational_pattern = r'[—?!]'
     conversational_matches = re.findall(conversational_pattern, text)
 
     s_count = len(structured_matches)

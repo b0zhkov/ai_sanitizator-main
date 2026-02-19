@@ -41,7 +41,7 @@ def analyze_verb_frequency(text: str) -> Dict[str, any]:
     doc = nlp(text)
     
     total_verbs = 0
-    detected_ai_verbs = set()
+    ai_verb_occurrences = 0
 
     for token in doc:
         if token.pos_ == "VERB":
@@ -50,8 +50,9 @@ def analyze_verb_frequency(text: str) -> Dict[str, any]:
             
             if lemma in AI_FAVORED_VERBS:
                 detected_ai_verbs.add(lemma)
+                ai_verb_occurrences += 1
 
-    ai_verbs_count = len(detected_ai_verbs)
+    ai_verbs_count = ai_verb_occurrences
     density = (ai_verbs_count / total_verbs * 100) if total_verbs > 0 else 0.0
 
     return {
