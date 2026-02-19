@@ -7,46 +7,27 @@ such as email addresses, URLs, and IP addresses.
 import re
 import socket
 
-# Regex for Email Addresses
 _EMAIL_REGEX = re.compile(
     r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 )
-
-# Regex for URLs (http/https/www)
 _URL_REGEX = re.compile(
     r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+|www\.[-\w]+\.[-\w]+'
 )
 
-# Regex for IPv4 Addresses
 _IPV4_REGEX = re.compile(
     r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
 )
 
 def redact_pii(text: str) -> str:
-    """
-    Redacts specific PII from the text with placeholders like [EMAIL], [URL], [IP].
-    
-    Args:
-        text (str): Input text.
-        
-    Returns:
-        str: Redacted text.
-    """
     if not text:
         return ""
         
     text = _EMAIL_REGEX.sub("[EMAIL]", text)
     text = _URL_REGEX.sub("[URL]", text)
     
-    # Redact IPs but verify they are valid IPs to avoid redacting random numbers like version numbers (1.2.3.4)
-    # However, strict IP validation is slow for bulk text. We will stick to pattern matching for now
-    # and maybe verify basic range (0-255) if needed.
-    # For now, just strict regex replacement.
-    
     def replace_ip(match):
         ip_str = match.group(0)
         try:
-            # Validate IP
             socket.inet_aton(ip_str)
             return "[IP]"
         except socket.error:

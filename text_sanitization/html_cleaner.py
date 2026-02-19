@@ -1,7 +1,7 @@
 """
 HTML Cleaner module.
 
-This module provides functionality to strip HTML tags from text while preserving the content.
+This module provides functionality to stArip HTML tags from text while preserving the content.
 It uses BeautifulSoup for robust parsing and cleaning.
 """
 from bs4 import BeautifulSoup
