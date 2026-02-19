@@ -1,8 +1,8 @@
 import sys
 import os
 
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-_project_root = os.path.dirname(_current_dir)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+_project_root = os.path.dirname(current_dir)
 sys.path.insert(0, _project_root)
 import _paths 
 
@@ -18,7 +18,6 @@ try:
     import document_loading
 except ImportError as e:
     print(f"Error importing modules: {e}")
-    # Fail hard on import error as per critique
     raise e
 
 from web_app.database import init_db
@@ -39,7 +38,6 @@ app.include_router(history_router)
 app.include_router(process_router)
 
 # Mount static files
-current_dir = _current_dir
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 
 @app.get("/")

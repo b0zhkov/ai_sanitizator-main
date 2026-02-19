@@ -32,14 +32,12 @@ except LookupError:
         # but prevents immediate crash on import.
 
 
-def get_clean_text(raw_text: str) -> str:
-    return clean_text_getter.get_clean_text_from_string(raw_text)
 
 def tokenize_text(text: str) -> list[str]:
-    return word_tokenize(get_clean_text(text))
+    return word_tokenize(clean_text_getter.get_clean_text_from_string(text))
 
 def tokenize_text_into_sentences(text: str) -> list[str]:
-    return sent_tokenize(get_clean_text(text))
+    return sent_tokenize(clean_text_getter.get_clean_text_from_string(text))
 
 def get_repeating_keyphrases(text: str, min_phrase_length: int = 2, max_phrase_length: int = 5) -> list[str]:
     words = tokenize_text(text)

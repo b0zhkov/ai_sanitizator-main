@@ -15,13 +15,9 @@ import clean_text_getter
 import repetition_detection
 
 
-def get_clean_text(raw_text: str) -> str:
-    clean_text = clean_text_getter.get_clean_text_from_string(raw_text)
-    return clean_text
-
 
 def get_sentences(text: str) -> list[str]:
-    clean_text = get_clean_text(text)
+    clean_text = clean_text_getter.get_clean_text_from_string(text)
     return repetition_detection.tokenize_text_into_sentences(clean_text)
 
 
@@ -36,7 +32,7 @@ def is_heading(line: str) -> bool:
 
 def get_repeating_headings(text: str) -> list[str]:
 
-    clean_text = get_clean_text(text)
+    clean_text = clean_text_getter.get_clean_text_from_string(text)
     lines = clean_text.split('\n')
     
     seen_headings = {}

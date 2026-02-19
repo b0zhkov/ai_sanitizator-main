@@ -43,14 +43,16 @@ async def process_text(
         changes_list = [
             {
                 "description": c.description,
-                "text_before": c.text_before if hasattr(c, 'text_before') else "", 
-                "text_after": c.text_after if hasattr(c, 'text_after') else ""
+                "text_before": c.text_before, 
+                "text_after": c.text_after
             } 
             for c in changes
         ]
 
+        # Get user once
+        user = get_optional_user(request, db)
+
         if action == "clean":
-            user = get_optional_user(request, db)
             if user:
                 save_history_entry(db, user.id, "clean", text, clean_text_val)
 
@@ -61,7 +63,6 @@ async def process_text(
 
         elif action == "rewrite":
             t0 = time.time()
-            user = get_optional_user(request, db)
             
             # Rate Limiting
             if user:
@@ -71,10 +72,6 @@ async def process_text(
                          yield json.dumps({"type": "error", "data": error_msg}) + "\n"
                     return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
-                # Note: Usage update happens inside pipeline or we do it here?
-                # The pipeline update logic in original main.py was:
-                # user.chars_used_current_session = current_usage + len(clean_text_val)
-                # This should happen if check passes.
                 update_usage(user, db, len(clean_text_val))
 
             return StreamingResponse(

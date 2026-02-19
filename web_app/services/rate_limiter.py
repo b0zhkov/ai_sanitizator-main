@@ -2,7 +2,11 @@ from datetime import datetime, timezone, timedelta
 import json
 import asyncio
 
-def check_rate_limit(user, db, cost: int, limit: int = 2000):
+
+CHAR_LIMIT = 2000
+COOLDOWN_HOURS = 3
+
+def check_rate_limit(user, db, cost: int, limit: int = CHAR_LIMIT):
     """
     Checks if the user has exceeded the usage limit.
     Returns a tuple (is_allowed, error_message_or_none).
@@ -24,10 +28,10 @@ def check_rate_limit(user, db, cost: int, limit: int = 2000):
     
     # Check if this request would exceed limit
     if current_usage + cost > limit:
-        user.rewrite_lockout_until = now + timedelta(hours=3)
+        user.rewrite_lockout_until = now + timedelta(hours=COOLDOWN_HOURS)
         user.chars_used_current_session = 0
         db.commit()
-        return False, "Usage limit (2000 chars) exceeded. You are now on a 3-hour cooldown. You can still use Sanitization."
+        return False, f"Usage limit ({limit} chars) exceeded. You are now on a {COOLDOWN_HOURS}-hour cooldown. You can still use Sanitization."
 
     return True, None
 

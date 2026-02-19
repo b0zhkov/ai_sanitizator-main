@@ -12,6 +12,8 @@ The end goal is to encourage more natural and varied vocabulary.
 from typing import Dict
 import spacy
 
+import shared_nlp
+
 AI_FAVORED_VERBS = {
     "delve", "underscore", "illuminate", "facilitate", "bolster", 
     "revolutionize", "navigate", "foster", "optimize", "leverage",
@@ -19,29 +21,17 @@ AI_FAVORED_VERBS = {
     "showcase", "streamline", "exemplify", "resonate", "spearhead"
 }
 
-_nlp = None
-
-def _get_nlp():
-    global _nlp
-    if _nlp is None:
-        try:
-            _nlp = spacy.load("en_core_web_sm")
-        except OSError:
-            from spacy.cli import download
-            download("en_core_web_sm")
-            _nlp = spacy.load("en_core_web_sm")
-    return _nlp
-
 def analyze_verb_frequency(text: str) -> Dict[str, any]:
 
     if not text or not text.strip():
         return _build_empty_result()
 
-    nlp = _get_nlp()
+    nlp = shared_nlp.get_nlp_full()
     doc = nlp(text)
     
     total_verbs = 0
     ai_verb_occurrences = 0
+    detected_ai_verbs = set()
 
     for token in doc:
         if token.pos_ == "VERB":
