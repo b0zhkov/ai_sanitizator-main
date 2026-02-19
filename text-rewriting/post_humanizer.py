@@ -31,10 +31,7 @@ from perplexity_enhancer import enhance_perplexity
 from imperfection_injector import inject_imperfections
 
 
-TRANSITION_DROP_RATE = 0.30
-TRANSITION_REPLACE_RATE = 0.40
-CONJUNCTION_RATE = 0.12
-VOCABULARY_SWAP_RATE = 0.85
+
 
 STRENGTH_PRESETS = {
     "light":      {"vocab": 0.40, "transition_drop": 0.15, "transition_replace": 0.20, "conjunction": 0.05},
@@ -141,9 +138,9 @@ def _make_contraction_replacer(contracted: str) -> Callable[[re.Match[str]], str
     return replacer
 
 
-def _make_vocabulary_replacer(common: str) -> Callable[[re.Match[str]], str]:
+def _make_vocabulary_replacer(common: str, rate: float) -> Callable[[re.Match[str]], str]:
     def replacer(match: re.Match[str]) -> str:
-        if random.random() < VOCABULARY_SWAP_RATE:
+        if random.random() < rate:
             return _preserve_case(match.group(0), common)
         return match.group(0)
     return replacer
@@ -176,7 +173,7 @@ def _enforce_contractions(text: str) -> str:
     return pattern.sub(replacer, text)
 
 
-def _fuzz_single_transition_optimized(sentence: str, pattern: re.Pattern, lookup: Dict[str, List[str]]) -> str:
+def _fuzz_single_transition_optimized(sentence: str, pattern: re.Pattern, lookup: Dict[str, List[str]], drop_rate: float, replace_rate: float) -> str:
     # Check if sentence starts with any of the transitions
     # The pattern matches at \b, but transitions are usually at start.
     # We want to match ONLY at the beginning of the string.
@@ -206,17 +203,17 @@ def _fuzz_single_transition_optimized(sentence: str, pattern: re.Pattern, lookup
 
     roll = random.random()
 
-    if roll < TRANSITION_DROP_RATE:
+    if roll < drop_rate:
         return _capitalize_first(remainder)
 
-    if roll < TRANSITION_DROP_RATE + TRANSITION_REPLACE_RATE:
+    if roll < drop_rate + replace_rate:
         alternatives = lookup[key]
         return random.choice(alternatives) + " " + remainder
 
     return sentence
 
 
-def _fuzz_transitions(text: str) -> str:
+def _fuzz_transitions(text: str, drop_rate: float, replace_rate: float) -> str:
     if not _transition_alternatives:
         return text
 
@@ -235,13 +232,13 @@ def _fuzz_transitions(text: str) -> str:
 
     for paragraph in paragraphs:
         sentences = _split_sentences(paragraph)
-        fuzzed = [_fuzz_single_transition_optimized(s, pattern, lookup) for s in sentences]
+        fuzzed = [_fuzz_single_transition_optimized(s, pattern, lookup, drop_rate, replace_rate) for s in sentences]
         result.append(' '.join(fuzzed))
 
     return '\n\n'.join(result)
 
 
-def _inject_into_sentences(sentences: List[str]) -> List[str]:
+def _inject_into_sentences(sentences: List[str], conjunction_rate: float) -> List[str]:
     if len(sentences) < 3:
         return sentences
         
@@ -256,7 +253,7 @@ def _inject_into_sentences(sentences: List[str]) -> List[str]:
 
         first_word = words[0].lower().rstrip('.,;:')
 
-        if first_word not in _CONJUNCTION_WORDS and random.random() < CONJUNCTION_RATE:
+        if first_word not in _CONJUNCTION_WORDS and random.random() < conjunction_rate:
             conjunction = random.choice(["And ", "But "])
             if first_word in _LOWERABLE_STARTERS:
                 sentence = conjunction + _lowercase_first(sentence)
@@ -268,19 +265,19 @@ def _inject_into_sentences(sentences: List[str]) -> List[str]:
     return result
 
 
-def _inject_conjunctions(text: str) -> str:
+def _inject_conjunctions(text: str, rate: float) -> str:
     paragraphs = text.split('\n\n')
     result = []
 
     for paragraph in paragraphs:
         sentences = _split_sentences(paragraph)
-        injected = _inject_into_sentences(sentences)
+        injected = _inject_into_sentences(sentences, rate)
         result.append(' '.join(injected))
 
     return '\n\n'.join(result)
 
 
-def _downgrade_vocabulary(text: str) -> str:
+def _downgrade_vocabulary(text: str, rate: float) -> str:
     if not _vocabulary_swaps:
         return text
         
@@ -289,7 +286,7 @@ def _downgrade_vocabulary(text: str) -> str:
     pattern = _build_optimized_regex(keys)
     
     def replacer(match):
-        if random.random() >= VOCABULARY_SWAP_RATE:
+        if random.random() >= rate:
             return match.group(0)
             
         key = match.group(0).lower()
@@ -304,20 +301,21 @@ def humanize(text: str, strength: str = "medium") -> str:
     if not text or not text.strip():
         return text
 
-    global VOCABULARY_SWAP_RATE, TRANSITION_DROP_RATE, TRANSITION_REPLACE_RATE, CONJUNCTION_RATE
-
+    # Load config based on strength
     preset = STRENGTH_PRESETS.get(strength, STRENGTH_PRESETS["medium"])
-    VOCABULARY_SWAP_RATE = preset["vocab"]
-    TRANSITION_DROP_RATE = preset["transition_drop"]
-    TRANSITION_REPLACE_RATE = preset["transition_replace"]
-    CONJUNCTION_RATE = preset["conjunction"]
+    config = {
+        "vocab_rate": preset["vocab"],
+        "transition_drop": preset["transition_drop"],
+        "transition_replace": preset["transition_replace"],
+        "conjunction_rate": preset["conjunction"]
+    }
 
     _load_csv_data()
 
-    text = _downgrade_vocabulary(text)
+    text = _downgrade_vocabulary(text, config["vocab_rate"])
     text = _enforce_contractions(text)
-    text = _fuzz_transitions(text)
-    text = _inject_conjunctions(text)
+    text = _fuzz_transitions(text, config["transition_drop"], config["transition_replace"])
+    text = _inject_conjunctions(text, config["conjunction_rate"])
     text = inject_imperfections(text)
     text = enhance_perplexity(text)
     text = break_structure(text)

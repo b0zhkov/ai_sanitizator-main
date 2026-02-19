@@ -27,11 +27,10 @@ import shared_nlp
 nlp = None
 matcher = None
 style_words = None
-content_words = None
 
 def _initialize_spacy():
     
-    global nlp, matcher, style_words, content_words
+    global nlp, matcher, style_words
     if nlp is not None:
         return
 
@@ -40,16 +39,14 @@ def _initialize_spacy():
     nlp = shared_nlp.get_nlp_full()
     df = pd.read_csv(os.path.join(os.path.dirname(__file__), "excess_words.csv"))
 
+
     style_words = df[df['type'] == 'style']['word'].tolist()
-    content_words = df[df['type'] == 'content']['word'].tolist()
+    # content_words unused
 
     matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
 
     style_patterns = [nlp.make_doc(text) for text in style_words]
     matcher.add("AI_FILLER", style_patterns)
-
-def load_and_clean_text(file_path: str) -> str:
-    return clean_text_getter.get_clean_text_from_file(file_path)
 
 def analyze_and_filter_out(text: str):
     _initialize_spacy()

@@ -116,8 +116,3 @@ def build_changes_log(text):
     
     return text, changes
 
-def summarize_changes(changes):
-    summaries = []
-    for change in changes:
-        summaries.append(change.description)
-    return summaries

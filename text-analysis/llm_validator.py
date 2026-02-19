@@ -18,6 +18,7 @@ import csv
 import _paths  # noqa: E402 — centralised path setup
 import hedging_filler_detector as hedging
 import repetition_detection as repetition
+import repeating_headings
 import uniform_sentence_len as uniform
 import readability_analysis
 import verb_freq
@@ -112,22 +113,24 @@ def _analyze_punctuation(text: str) -> dict:
     except Exception as e:
         return {"error": str(e)}
 
+_excess_words_cache = None
+
 def _check_excess_words(text: str) -> dict:
+    global _excess_words_cache
     try:
-        csv_path = os.path.join(os.path.dirname(__file__), 'excess_words.csv')
-        
         import re
         
+        if _excess_words_cache is None:
+            csv_path = os.path.join(os.path.dirname(__file__), 'excess_words.csv')
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                next(reader, None) # Skip header
+                _excess_words_cache = [word.strip().lower() for row in reader for word in row if word.strip()]
+            
         flagged = []
         
-        # Read CSV and skip header
-        with open(csv_path, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            next(reader, None) # Skip header
-            excess_list = [word.strip().lower() for row in reader for word in row if word.strip()]
-            
         # Use regex for word boundaries
-        for word in excess_list:
+        for word in _excess_words_cache:
             # Escape the word mostly to be safe, though they are likely simple words
             pattern = r'\b' + re.escape(word) + r'\b'
             if re.search(pattern, text, re.IGNORECASE):

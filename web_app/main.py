@@ -17,7 +17,7 @@ try:
     from post_humanizer import humanize
     import document_loading
 except ImportError as e:
-    print(f"Error importing modules: {e}")
+    logging.error(f"Error importing modules: {e}")
     raise e
 
 from web_app.database import init_db
@@ -25,12 +25,19 @@ from web_app.routes_auth import router as auth_router
 from web_app.routes_history import router as history_router
 from web_app.routes_process import router as process_router
 
-app = FastAPI()
+import logging
+from contextlib import asynccontextmanager
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 
 app.include_router(auth_router)
