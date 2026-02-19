@@ -13,9 +13,7 @@ decrease the uniformity of the text.
 """
 import re
 import random
-import os
-import sys
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 import _paths  # noqa: E402 — centralised path setup
 import shared_nlp

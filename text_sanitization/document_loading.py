@@ -29,21 +29,6 @@ def _load_html(file_path: str) -> str:
         soup = BeautifulSoup(f.read(), 'html.parser')
         return soup.get_text(separator='\n', strip=True)
 
-def html_specific_content(html_input: str) -> list[dict]:
-    soup = BeautifulSoup(html_input, "html.parser")
-    
-    structured_data = []
-    
-    for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']):
-        element_type = "heading" if tag.name.startswith('h') else "body"
-        
-        structured_data.append({
-            "type": element_type,
-            "tag": tag.name,
-            "content": tag.get_text().strip()
-        })
-        
-    return structured_data
 
 def _load_pdf(file_path: str) -> str:
     reader = PdfReader(file_path)

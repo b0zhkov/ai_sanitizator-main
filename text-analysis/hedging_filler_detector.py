@@ -28,6 +28,8 @@ nlp = None
 matcher = None
 style_words = None
 
+__all__ = ['analyze_and_filter_out']
+
 def _initialize_spacy():
     
     global nlp, matcher, style_words

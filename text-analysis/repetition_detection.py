@@ -17,7 +17,6 @@ import os
 import sys
 import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
-import clean_text_getter
 
 import _paths  # noqa: E402 — centralised path setup
 
@@ -34,10 +33,10 @@ except LookupError:
 
 
 def tokenize_text(text: str) -> list[str]:
-    return word_tokenize(clean_text_getter.get_clean_text_from_string(text))
+    return word_tokenize(text)
 
 def tokenize_text_into_sentences(text: str) -> list[str]:
-    return sent_tokenize(clean_text_getter.get_clean_text_from_string(text))
+    return sent_tokenize(text)
 
 def get_repeating_keyphrases(text: str, min_phrase_length: int = 2, max_phrase_length: int = 5) -> list[str]:
     words = tokenize_text(text)

@@ -9,7 +9,7 @@ It achieves this by:
 
 The end goal is to encourage more natural and varied vocabulary.
 """
-from typing import Dict
+from typing import Dict, Any
 import spacy
 
 import shared_nlp
@@ -21,7 +21,7 @@ AI_FAVORED_VERBS = {
     "showcase", "streamline", "exemplify", "resonate", "spearhead"
 }
 
-def analyze_verb_frequency(text: str) -> Dict[str, any]:
+def analyze_verb_frequency(text: str) -> Dict[str, Any]:
 
     if not text or not text.strip():
         return _build_empty_result()
@@ -53,7 +53,7 @@ def analyze_verb_frequency(text: str) -> Dict[str, any]:
         "detected_ai_verbs": list(detected_ai_verbs)
     }
 
-def _build_empty_result() -> Dict[str, any]:
+def _build_empty_result() -> Dict[str, Any]:
     return {
         "status": "empty_input",
         "total_verbs": 0,

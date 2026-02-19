@@ -16,14 +16,13 @@ first splitting excessively long sentences based on a character threshold
 then conditionally merging short ones. Finally, it applies clause reordering and 
 punctuation swaps based on the probability constants defined in the module.
 
-The end goal of this module is to assist with breaking the uniformity of AI text.
 """
 import re
 import random
 from typing import List, Tuple
 
 
-_SENTENCE_BOUNDARY = re.compile(r'(?<!\bDr)(?<!\bMr)(?<!\bMs)(?<!\bMrs)(?<!\bvs)(?<!\bSt)(?<=[.!?])\s+')
+import shared_utils
 
 _SPLIT_CONJUNCTIONS = re.compile(
     r',\s*(and|but|or|yet|so|because|although|while|whereas|since|though)\s+',
@@ -39,37 +38,17 @@ _SENTENCE_SPLIT_RATE = 0.60
 _SENTENCE_MERGE_RATE = 0.50
 _CLAUSE_REORDER_RATE = 0.30
 _COMMA_TO_DASH_RATE = 0.12
-_COMMA_TO_SEMICOLON_RATE = 0.0
 
 _MIN_SPLIT_CHARS = 60
 _SHORT_SENTENCE_WORDS = 8
 _MIN_WORDS_PER_SIDE = 3
-
-_SAFE_TO_LOWERCASE = frozenset({
-    "the", "a", "an", "this", "that", "these", "those",
-    "it", "its", "they", "their", "we", "our", "my",
-    "he", "she", "his", "her", "there", "here",
-    "some", "many", "most", "all", "each", "every",
-    "one", "no", "not", "when", "while", "if", "as",
-    "but", "and", "or", "so", "yet", "for", "nor",
-})
-
-def _split_into_sentences(text: str) -> List[str]:
-    return [s for s in _SENTENCE_BOUNDARY.split(text) if s.strip()]
-
-
-def _capitalize_first(text: str) -> str:
-    if not text:
-        return text
-    return text[0].upper() + text[1:] if len(text) > 1 else text[0].upper()
-
 
 def _lowercase_first_if_safe(text: str) -> str:
     if not text:
         return text
     first_word = text.split()[0].rstrip('.,;:!?')
 
-    if first_word.lower() in _SAFE_TO_LOWERCASE:
+    if first_word.lower() in shared_utils.LOWERABLE_STARTERS:
         return text[0].lower() + text[1:]
 
     if len(first_word) <= 2 or first_word.isupper():
@@ -94,6 +73,7 @@ def _strip_terminal_punct(text: str) -> Tuple[str, str]:
         return stripped[:-1], stripped[-1]
     return stripped, ''
 
+
 def _split_long_sentence(sentence: str) -> str:
     if len(sentence) < _MIN_SPLIT_CHARS:
         return sentence
@@ -112,7 +92,7 @@ def _split_long_sentence(sentence: str) -> str:
     if not _has_min_words(first_half) or not _has_min_words(rest):
         return sentence
 
-    capitalized_conn = _capitalize_first(conjunction)
+    capitalized_conn = shared_utils.capitalize_first(conjunction)
     rest_clean = rest.lstrip()
 
     if conjunction.lower() in ("and", "but"):
@@ -181,7 +161,7 @@ def _reorder_clause(sentence: str) -> str:
     main_body, _ = _strip_terminal_punct(main_clause)
 
     reordered = (
-        _capitalize_first(subordinator) + " " + sub_body.lstrip()
+        shared_utils.capitalize_first(subordinator) + " " + sub_body.lstrip()
         + ", " + _lowercase_first_if_safe(main_body)
         + (terminal or ".")
     )
@@ -215,9 +195,6 @@ def _diversify_punctuation(sentence: str) -> str:
     if roll < _COMMA_TO_DASH_RATE:
         return before + " — " + after
 
-    if roll < _COMMA_TO_DASH_RATE + _COMMA_TO_SEMICOLON_RATE:
-        return before + "; " + after
-
     return sentence
 
 
@@ -240,12 +217,12 @@ def break_structure(text: str) -> str:
     result: List[str] = []
 
     for paragraph in paragraphs:
-        sentences = _split_into_sentences(paragraph)
+        sentences = shared_utils.split_sentences(paragraph)
 
         split_sentences: List[str] = []
         for sentence in sentences:
             broken = _split_long_sentence(sentence)
-            split_sentences.extend(_split_into_sentences(broken))
+            split_sentences.extend(shared_utils.split_sentences(broken))
         merged_sentences = _merge_short_sentences(split_sentences)
 
         final_sentences = [

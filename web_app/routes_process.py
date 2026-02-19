@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -8,21 +7,17 @@ import shutil
 import tempfile
 import json
 import time
+import traceback
 
 from web_app.database import get_db
 from web_app.auth import get_optional_user
 from web_app.routes_history import save_history_entry
 
-# Services
 from web_app.services.rate_limiter import check_rate_limit, update_usage
 from web_app.services.rewrite_pipeline import rewrite_stream_generator
 
-# Core modules (imported safely or assumed available)
-try:
-    from changes_log import build_changes_log
-    import document_loading
-except ImportError:
-    pass
+from changes_log import build_changes_log
+import document_loading
 
 router = APIRouter()
 
@@ -30,13 +25,11 @@ router = APIRouter()
 async def process_text(
     request: Request,
     action: str = Form(...),
-    text: str = Form(...),
+    text: str = Form(..., min_length=1),
     strength: str = Form("medium"),
     db: Session = Depends(get_db),
 ):
     try:
-        if not text:
-            raise HTTPException(status_code=400, detail="No text provided")
 
         clean_text_val, changes = await asyncio.to_thread(build_changes_log, text)
         
@@ -49,7 +42,6 @@ async def process_text(
             for c in changes
         ]
 
-        # Get user once
         user = get_optional_user(request, db)
 
         if action == "clean":
@@ -63,8 +55,7 @@ async def process_text(
 
         elif action == "rewrite":
             t0 = time.time()
-            
-            # Rate Limiting
+
             if user:
                 is_allowed, error_msg = check_rate_limit(user, db, len(clean_text_val))
                 if not is_allowed:
@@ -83,7 +74,6 @@ async def process_text(
             raise HTTPException(status_code=400, detail="Invalid action")
 
     except Exception as e:
-        import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 

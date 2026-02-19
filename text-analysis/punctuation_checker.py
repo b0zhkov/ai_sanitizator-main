@@ -1,5 +1,5 @@
 """
-The pucntuation checker analyzes the text, then it gathers information as to what punctuation marks
+The punctuation checker analyzes the text, then it gathers information as to what punctuation marks
 have been used throughout.
 
 The idea is to calculate a ratio of structured to conversational punctuation marks.
@@ -8,9 +8,9 @@ The structured ones being more typically used by AI due to them being more forma
 while the conversational ones are more typically used by humans.
 """
 import re
-from typing import Dict
+from typing import Dict, Any
 
-def analyze_punctuation_structure(text: str) -> Dict[str, any]:
+def analyze_punctuation_structure(text: str) -> Dict[str, Any]:
     if not text:
         return {
             "status": "empty_input",

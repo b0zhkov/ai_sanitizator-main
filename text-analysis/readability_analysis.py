@@ -39,7 +39,7 @@ def analyze_readability_variance(text: str) -> dict:
             "grade_level_std": 0.0,
             "avg_reading_ease": flesch_score,
             "avg_grade_level": grade_level,
-            "scores": []
+            "uniformity_score": "N/A"
         }
 
     ease_scores = []

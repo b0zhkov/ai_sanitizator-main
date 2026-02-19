@@ -9,11 +9,22 @@ from langchain_cloudflare import ChatCloudflareWorkersAI
 
 load_dotenv()
 
-llm = ChatCloudflareWorkersAI(
-    account_id=os.getenv("CF_ACCOUNT_ID"),
-    api_token=os.getenv("CF_AI_API_KEY"),
-    model="@cf/meta/llama-3-8b-instruct",
-    temperature=0.8,
-    top_p=0.95,
-    max_tokens=4096
-)
+_llm = None
+
+def get_llm():
+    global _llm
+    if _llm is None:
+        _llm = ChatCloudflareWorkersAI(
+            account_id=os.getenv("CF_ACCOUNT_ID"),
+            api_token=os.getenv("CF_AI_API_KEY"),
+            model="@cf/meta/llama-3-8b-instruct",
+            temperature=0.8,
+            top_p=0.95,
+            max_tokens=4096
+        )
+    return _llm
+
+def __getattr__(name):
+    if name == "llm":
+        return get_llm()
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

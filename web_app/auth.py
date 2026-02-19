@@ -79,7 +79,7 @@ def decode_token(token: str) -> Optional[int]:
 
     try:
         payload = json.loads(_b64_decode(payload_b64))
-    except (json.JSONDecodeError, Exception):
+    except Exception:
         return None
 
     if payload.get("exp", 0) < time.time():

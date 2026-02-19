@@ -16,6 +16,8 @@ import csv
 import random
 from typing import List, Dict
 
+import shared_utils
+
 _BURST_RATE = 0.15
 _SPICE_RATE = 0.40
 _IDIOM_RATE = 0.30
@@ -74,26 +76,12 @@ def _load_list_csv(filename: str, col_name: str) -> List[str]:
     return result
 
 
-def _preserve_case(original: str, replacement: str) -> str:
-    if not original:
-        return replacement
-    if original[0].isupper():
-        return replacement[0].upper() + replacement[1:]
-    return replacement
-
-
 def _replace_match(match: re.Match, replacements: List[str]) -> str:
     if not replacements:
         return match.group(0)
     choice = random.choice(replacements)
-    return _preserve_case(match.group(0), choice)
+    return shared_utils.preserve_case(match.group(0), choice)
 
-
-def _build_optimized_regex(keys: List[str]) -> re.Pattern:
-    # Sort by length descending to match longest first
-    sorted_keys = sorted(keys, key=len, reverse=True)
-    pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
-    return re.compile(r'\b(' + pattern_str + r')\b', re.IGNORECASE)
 
 def _spice_adjectives(text: str) -> str:
     if not _ADJECTIVE_SPICE:
@@ -102,7 +90,7 @@ def _spice_adjectives(text: str) -> str:
     # Create a lookup map for case-insensitive matching
     lookup = {k.lower(): v for k, v in _ADJECTIVE_SPICE.items()}
     keys = list(_ADJECTIVE_SPICE.keys())
-    pattern = _build_optimized_regex(keys)
+    pattern = shared_utils.build_optimized_regex(keys)
     
     def replacer(m):
         key = m.group(0).lower()
@@ -123,10 +111,7 @@ def _inject_bursts(text: str) -> str:
 
     starters = frozenset({"The", "It", "This", "That", "There", "He", "She", "We", "They"})
     
-    # Regex split to avoid splitting on Dr. Mr. etc.
-    # Lookbehind asserts what precedes the dot is NOT an abbreviation
-    pattern = re.compile(r'(?<!\bDr)(?<!\bMr)(?<!\bMs)(?<!\bMrs)(?<!\bvs)(?<!\bSt)\. ')
-    sentences = pattern.split(text)
+    sentences = shared_utils.split_sentences(text)
     result = []
     
     for i, sent in enumerate(sentences):
@@ -152,7 +137,7 @@ def _inject_bursts(text: str) -> str:
             result.append(new_sent)
             injected = True
             
-        elif not injected and "," in sent and random.random() < _BURST_RATE:
+        elif "," in sent and random.random() < _BURST_RATE:
              parts = sent.split(',', 1)
              modifier = random.choice(_BURST_MODIFIERS).rstrip(',')
              
@@ -167,7 +152,7 @@ def _inject_bursts(text: str) -> str:
         else:
             result.append(sent)
             
-    return '. '.join(result)
+    return ' '.join(result)
 
 
 def _inject_idioms(text: str) -> str:
@@ -181,6 +166,7 @@ def _inject_idioms(text: str) -> str:
          
         text = pattern.sub(replacer, text)
     return text
+
 
 def enhance_perplexity(text: str) -> str:
     if not text:

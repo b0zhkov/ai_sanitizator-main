@@ -1,25 +1,24 @@
 const WordCount = {
     settings: {
         inputSelector: '#rawText',
-        displaySelector: '#wordCountDisplay',
+
         wordCountId: 'wordCount',
         charCountId: 'charCount'
     },
 
     init() {
-        const inputElement = document.querySelector(this.settings.inputSelector);
-        if (!inputElement) return;
+        this.inputElement = document.querySelector(this.settings.inputSelector);
+        if (!this.inputElement) return;
 
-        inputElement.addEventListener('input', () => this.update());
+        this.inputElement.addEventListener('input', () => this.update());
 
         this.update();
     },
 
     update() {
-        const inputElement = document.querySelector(this.settings.inputSelector);
-        if (!inputElement) return;
+        if (!this.inputElement) return;
 
-        const text = inputElement.value || '';
+        const text = this.inputElement.value || '';
         const wordCount = this.countWords(text);
         const charCount = text.length;
 

@@ -1,6 +1,6 @@
 """
 This file is responsible for the actual rewriting of the text.
-Firstly it inicializes the LLM and creates a chain of events.
+Firstly it initializes the LLM and creates a chain of events.
 That chain being to first get the prompt and then give it to the LLM.
 There is a safety measure against infinite loading which is to stop the rewriting process
 after 3 failed attempts.
@@ -12,11 +12,10 @@ the generic "Sure! Here is..." message out of what the user sees for a professio
 The stream_rewrite function is the one responsible for yielding the output of the LLM in chunks.
 It uses a buffer to store the output of the LLM and yields it as soon as it is safely confirmed
 to be part of the final text (maintaining a small buffer to handle the closing tag).
-This is used with the puprose to show the user, the text is being rewritten in real time,
+This is used with the purpose to show the user, the text is being rewritten in real time,
 rather than a lengthy loading screen.
 """
-import sys
-import os
+
 import json
 import traceback
 import re

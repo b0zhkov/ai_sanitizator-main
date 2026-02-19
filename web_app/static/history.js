@@ -124,7 +124,6 @@ const History = (() => {
                     </button>` : ""}
                 </div>
             </div>
-            </div>
             <p class="text-xs text-theme-secondary leading-relaxed">${_escapeHtml(preview)}</p>
         `;
 

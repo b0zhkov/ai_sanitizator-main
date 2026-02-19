@@ -29,6 +29,7 @@ from typing import List, Dict, Callable
 from structure_breaker import break_structure
 from perplexity_enhancer import enhance_perplexity
 from imperfection_injector import inject_imperfections
+import shared_utils
 
 
 
@@ -40,17 +41,7 @@ STRENGTH_PRESETS = {
 }
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
-_SENTENCE_BOUNDARY = re.compile(r'(?<=[.!?])\s+')
 _CONJUNCTION_WORDS = frozenset({"and", "but", "or", "so", "yet", "nor", "for"})
-_LOWERABLE_STARTERS = frozenset({
-    "the", "a", "an", "this", "that", "these", "those",
-    "it", "its", "they", "their", "we", "our", "my",
-    "he", "she", "his", "her", "there", "here",
-    "some", "many", "most", "all", "each", "every",
-    "one", "no", "not", "when", "while", "if", "as",
-    "what", "which", "how", "where", "why",
-})
-
 _contraction_pairs: Dict[str, str] = {}
 _transition_alternatives: Dict[str, List[str]] = {}
 _vocabulary_swaps: Dict[str, str] = {}
@@ -101,60 +92,14 @@ def _load_transition_csv(filename: str) -> Dict[str, List[str]]:
     return result
 
 
-def _substr(text: str, start: int, end: int = -1) -> str:
-    if end == -1:
-        end = len(text)
-    chars = []
-    for i in range(start, min(end, len(text))):
-        chars.append(text[i])
-    return ''.join(chars)
 
-
-def _capitalize_first(text: str) -> str:
-    if not text:
-        return text
-    return text[0].upper() + _substr(text, 1) if len(text) > 1 else text[0].upper()
 
 
 def _lowercase_first(text: str) -> str:
     if not text:
         return text
-    return text[0].lower() + _substr(text, 1) if len(text) > 1 else text[0].lower()
+    return text[0].lower() + text[1:] if len(text) > 1 else text[0].lower()
 
-
-def _preserve_case(original: str, replacement: str) -> str:
-    if not original or not replacement:
-        return replacement
-    if replacement[0] == "I" and len(replacement) > 1 and replacement[1] in ("'", " "):
-        return replacement
-    if original[0].isupper():
-        return _capitalize_first(replacement)
-    return replacement
-
-
-def _make_contraction_replacer(contracted: str) -> Callable[[re.Match[str]], str]:
-    def replacer(match: re.Match[str]) -> str:
-        return _preserve_case(match.group(0), contracted)
-    return replacer
-
-
-def _make_vocabulary_replacer(common: str, rate: float) -> Callable[[re.Match[str]], str]:
-    def replacer(match: re.Match[str]) -> str:
-        if random.random() < rate:
-            return _preserve_case(match.group(0), common)
-        return match.group(0)
-    return replacer
-
-
-def _split_sentences(text: str) -> List[str]:
-    return [s for s in _SENTENCE_BOUNDARY.split(text) if s.strip()]
-
-
-def _build_optimized_regex(keys: List[str]) -> re.Pattern:
-    # Sort by length descending to match longest first
-    sorted_keys = sorted(keys, key=len, reverse=True)
-    pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
-    return re.compile(r'\b(' + pattern_str + r')\b', re.IGNORECASE)
 
 def _enforce_contractions(text: str) -> str:
     if not _contraction_pairs:
@@ -168,43 +113,31 @@ def _enforce_contractions(text: str) -> str:
         key = match.group(0).lower()
         if key not in lookup:
             return match.group(0)
-        return _preserve_case(match.group(0), lookup[key])
+        return shared_utils.preserve_case(match.group(0), lookup[key])
         
     return pattern.sub(replacer, text)
 
 
 def _fuzz_single_transition_optimized(sentence: str, pattern: re.Pattern, lookup: Dict[str, List[str]], drop_rate: float, replace_rate: float) -> str:
-    # Check if sentence starts with any of the transitions
-    # The pattern matches at \b, but transitions are usually at start.
-    # We want to match ONLY at the beginning of the string.
-    # So we use pattern.match (anchored at pos 0) if the pattern started with ^
-    # But our shared pattern generator uses \b.
-    # We need a specific pattern for transitions: ^(Formal1|Formal2|...)
-    
+    # Only attempt replacements on transitions that start the sentence
     match = pattern.match(sentence)
     if not match:
         return sentence
             
-    formal = match.group(0) # This picks the text that matched
-    # But we need the case-insensitive key to lookup
+    formal = match.group(0)
     key = formal.lower()
     
-    # In lookup, keys are lowercase? 
-    # _load_transition_csv loads them as is. 
-    # We need to ensure lookup map is lowercased.
     if key not in lookup:
-        # Fallback to original flow if something weird happens with casing
-        # or if the match wasn't in our lookup
         return sentence
 
-    remainder = _substr(sentence, len(formal)).lstrip()
+    remainder = sentence[len(formal):].lstrip()
     if not remainder:
         return sentence
 
     roll = random.random()
 
     if roll < drop_rate:
-        return _capitalize_first(remainder)
+        return shared_utils.capitalize_first(remainder)
 
     if roll < drop_rate + replace_rate:
         alternatives = lookup[key]
@@ -231,7 +164,7 @@ def _fuzz_transitions(text: str, drop_rate: float, replace_rate: float) -> str:
     result = []
 
     for paragraph in paragraphs:
-        sentences = _split_sentences(paragraph)
+        sentences = shared_utils.split_sentences(paragraph)
         fuzzed = [_fuzz_single_transition_optimized(s, pattern, lookup, drop_rate, replace_rate) for s in sentences]
         result.append(' '.join(fuzzed))
 
@@ -255,7 +188,7 @@ def _inject_into_sentences(sentences: List[str], conjunction_rate: float) -> Lis
 
         if first_word not in _CONJUNCTION_WORDS and random.random() < conjunction_rate:
             conjunction = random.choice(["And ", "But "])
-            if first_word in _LOWERABLE_STARTERS:
+            if first_word in shared_utils.LOWERABLE_STARTERS:
                 sentence = conjunction + _lowercase_first(sentence)
             else:
                 sentence = conjunction + sentence
@@ -270,7 +203,7 @@ def _inject_conjunctions(text: str, rate: float) -> str:
     result = []
 
     for paragraph in paragraphs:
-        sentences = _split_sentences(paragraph)
+        sentences = shared_utils.split_sentences(paragraph)
         injected = _inject_into_sentences(sentences, rate)
         result.append(' '.join(injected))
 
@@ -283,7 +216,7 @@ def _downgrade_vocabulary(text: str, rate: float) -> str:
         
     lookup = {k.lower(): v for k, v in _vocabulary_swaps.items()}
     keys = list(_vocabulary_swaps.keys())
-    pattern = _build_optimized_regex(keys)
+    pattern = shared_utils.build_optimized_regex(keys)
     
     def replacer(match):
         if random.random() >= rate:
@@ -292,7 +225,7 @@ def _downgrade_vocabulary(text: str, rate: float) -> str:
         key = match.group(0).lower()
         if key not in lookup:
             return match.group(0)
-        return _preserve_case(match.group(0), lookup[key])
+        return shared_utils.preserve_case(match.group(0), lookup[key])
 
     return pattern.sub(replacer, text)
 

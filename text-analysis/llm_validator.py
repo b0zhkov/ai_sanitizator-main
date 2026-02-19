@@ -8,7 +8,7 @@ Based on that data the LLM provides a critique, returns it as a json file and al
 a score from 1.0 to 10.0 (the lower the more human the text is).
 """
 import os
-import sys
+
 import json
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
@@ -26,6 +26,8 @@ import punctuation_checker
 import ai_phrase_detector
 import llm_info
 
+_MAX_LLM_INPUT_CHARS = 4000
+
 
 class CritiqueSchema(BaseModel):
     validation_of_stats: dict = Field(description="Verification of the algorithmically detected hedging, repetition, variance, readability, verb usage, and punctuation.")
@@ -33,7 +35,7 @@ class CritiqueSchema(BaseModel):
     recommended_actions: list[str] = Field(description="Steps to take during the rewriting phase.")
     ai_score: float = Field(description="Score from 1.0 (Human-written) to 10.0 (AI-generated). Use decimals for precision.")
 
-def _collect_stats(text: str) -> dict:
+def collect_stats(text: str) -> dict:
     return {
         'hedging': _analyze_hedging(text),
         'repetition': _analyze_repetition(text),
@@ -46,107 +48,80 @@ def _collect_stats(text: str) -> dict:
     }
 
 
-def collect_stats(text: str) -> dict:
-    return _collect_stats(text)
-
-
-def get_llm_critique(text: str, stats: dict) -> dict:
-    return _get_llm_critique(text, stats)
-
-
-def validate_text(text: str) -> dict:
-    stats = _collect_stats(text)
-    llm_response = _get_llm_critique(text, stats)
-
-    return {
-        "statistical_metrics": stats,
-        "llm_critique": llm_response
-    }
-
-
 def verify_metrics_only(text: str) -> dict:
-    stats = _collect_stats(text)
+    stats = collect_stats(text)
 
     return {
         "statistical_metrics": stats,
         "llm_critique": None
     }
 
+def _safe_analyze(fn):
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            return {"error": str(e)}
+    return wrapper
+
+@_safe_analyze
 def _analyze_hedging(text: str) -> dict:
-    try:
-        _, hedging_stats = hedging.analyze_and_filter_out(text)
-        return hedging_stats
-    except Exception as e:
-        return {"error": str(e)}
+    _, hedging_stats = hedging.analyze_and_filter_out(text)
+    return hedging_stats
 
+@_safe_analyze
 def _analyze_repetition(text: str) -> dict:
-    try:
-        repeats = repetition.get_repeating_keyphrases(text)
-        return {
-            "count": len(repeats), 
-            "samples": repeats[:5]
-        }
-    except Exception as e:
-        return {"error": str(e)}
+    repeats = repetition.get_repeating_keyphrases(text)
+    return {
+        "count": len(repeats), 
+        "samples": repeats[:5]
+    }
 
+@_safe_analyze
 def _analyze_sentence_variance(text: str) -> dict:
-    try:
-        return uniform.uniform_sentence_check(text)
-    except Exception as e:
-        return {"error": str(e)}
+    return uniform.uniform_sentence_check(text)
 
+@_safe_analyze
 def _analyze_readability(text: str) -> dict:
-    try:
-        return readability_analysis.analyze_readability_variance(text)
-    except Exception as e:
-        return {"error": str(e)}
+    return readability_analysis.analyze_readability_variance(text)
 
+@_safe_analyze
 def _analyze_verb_frequency(text: str) -> dict:
-    try:
-        return verb_freq.analyze_verb_frequency(text)
-    except Exception as e:
-        return {"error": str(e)}
+    return verb_freq.analyze_verb_frequency(text)
 
+@_safe_analyze
 def _analyze_punctuation(text: str) -> dict:
-    try:
-        return punctuation_checker.analyze_punctuation_structure(text)
-    except Exception as e:
-        return {"error": str(e)}
+    return punctuation_checker.analyze_punctuation_structure(text)
 
 _excess_words_cache = None
 
+@_safe_analyze
 def _check_excess_words(text: str) -> dict:
     global _excess_words_cache
-    try:
-        import re
+    import re
+    
+    if _excess_words_cache is None:
+        csv_path = os.path.join(os.path.dirname(__file__), 'excess_words.csv')
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            _excess_words_cache = [row['word'].strip().lower() for row in reader if row.get('word', '').strip()]
         
-        if _excess_words_cache is None:
-            csv_path = os.path.join(os.path.dirname(__file__), 'excess_words.csv')
-            with open(csv_path, 'r', encoding='utf-8') as f:
-                reader = csv.reader(f)
-                next(reader, None) # Skip header
-                _excess_words_cache = [word.strip().lower() for row in reader for word in row if word.strip()]
+    flagged = []
+    
+    # Use regex for word boundaries
+    for word in _excess_words_cache:
+        pattern = r'\b' + re.escape(word) + r'\b'
+        if re.search(pattern, text, re.IGNORECASE):
+            flagged.append(word)
             
-        flagged = []
-        
-        # Use regex for word boundaries
-        for word in _excess_words_cache:
-            # Escape the word mostly to be safe, though they are likely simple words
-            pattern = r'\b' + re.escape(word) + r'\b'
-            if re.search(pattern, text, re.IGNORECASE):
-                flagged.append(word)
-                
-        return {"count": len(flagged), "words": flagged[:20]}
-    except Exception as e:
-        return {"error": f"Failed to check excess words: {str(e)}"}
+    return {"count": len(flagged), "words": flagged[:20]}
 
+@_safe_analyze
 def _analyze_ai_phrases(text: str) -> dict:
-    try:
-        return ai_phrase_detector.analyze_ai_phrases(text)
-    except Exception as e:
-        return {"error": str(e)}
+    return ai_phrase_detector.analyze_ai_phrases(text)
 
-def _get_llm_critique(text: str, stats: dict) -> dict:
+
+def get_llm_critique(text: str, stats: dict) -> dict:
     parser = JsonOutputParser(pydantic_object=CritiqueSchema)
     
     prompt = ChatPromptTemplate.from_messages([
@@ -159,7 +134,7 @@ def _get_llm_critique(text: str, stats: dict) -> dict:
     try:
         return chain.invoke({
             "stats_json": json.dumps(stats),
-            "text_content": text[:4000],
+            "text_content": text[:_MAX_LLM_INPUT_CHARS],
             "format_instructions": parser.get_format_instructions()
         })
     except Exception as e:

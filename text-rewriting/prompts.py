@@ -1,7 +1,7 @@
 """
 This file contains the needed prompts for the rewriting process.
 
-The system one is the one responsbile for telling the llm all of the details needed to achieve the task,
+The system one is the one responsible for telling the llm all of the details needed to achieve the task,
 mentioned in the human prompt. 
 It utilizes certain rules (ex. The Hemingway Rule) alongside the results of the analysis to create the best results.
 

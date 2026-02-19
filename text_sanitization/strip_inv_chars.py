@@ -30,6 +30,7 @@ PATTERNS = [
     (MARKDOWN_HEADINGS, '')
 ]
 
+
 def validate_and_fix_encoding(text: str) -> str:
     if not text:
         return ""
@@ -44,17 +45,3 @@ def validate_and_fix_encoding(text: str) -> str:
             
     return text
 
-def sanitize_text(text: str) -> str:
-    if not text:
-        return ""
-
-    text = unicodedata.normalize('NFKC', text)
-    text = validate_and_fix_encoding(text)
-    text = INVISIBLE_CHARS.sub('', text)
-    text = TRACKING_ARTIFACTS.sub('', text)
-    text = INLINE_STYLES.sub('', text)
-    text = ASTERISKS.sub('', text)
-    text = TRAILING_WHITESPACE.sub('', text)
-    text = MARKDOWN_HEADINGS.sub('', text)
-    
-    return text

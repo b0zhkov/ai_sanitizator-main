@@ -31,18 +31,18 @@ def _enforce_history_limit(db: Session, user_id: int):
         return
 
     overflow = count - MAX_HISTORY_PER_USER
-    oldest = (
-        db.query(HistoryEntry)
+    oldest_ids = (
+        db.query(HistoryEntry.id)
         .filter(HistoryEntry.user_id == user_id)
         .order_by(HistoryEntry.created_at.asc())
         .limit(overflow)
         .all()
     )
 
-    for entry in oldest:
-        db.delete(entry)
-
-    db.flush()
+    id_list = [e_id for (e_id,) in oldest_ids]
+    if id_list:
+        db.query(HistoryEntry).filter(HistoryEntry.id.in_(id_list)).delete(synchronize_session='fetch')
+        db.flush()
 
 
 def save_history_entry(
