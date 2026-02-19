@@ -6,9 +6,9 @@ import normalizator
 import html_cleaner
 import whitespace_collapser
 import pii_redactor
-import emoji_cleaner
-import profanity_filter
 import markdown_stripper
+import profanity_filter
+import emoji_cleaner
 
 Change = namedtuple('Change', ['description', 'text_before', 'text_after'])
 
