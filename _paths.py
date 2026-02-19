@@ -12,7 +12,6 @@ _DIRS = [
     os.path.join(_PROJECT_ROOT, 'text-analysis'),
     os.path.join(_PROJECT_ROOT, 'text-rewriting'),
     os.path.join(_PROJECT_ROOT, 'text_sanitization'),
-    os.path.join(_PROJECT_ROOT, 'text_sanitization', 'changes-log'),
 ]
 
 for _d in _DIRS:

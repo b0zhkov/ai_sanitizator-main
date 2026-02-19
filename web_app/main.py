@@ -6,19 +6,9 @@ _project_root = os.path.dirname(_current_dir)
 sys.path.insert(0, _project_root)
 import _paths 
 
-import json
-import shutil
-import asyncio
-import tempfile
-from typing import List, Optional
 from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-
-current_dir = _current_dir
-project_root = _project_root
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
 
 try:
     from changes_log import build_changes_log, Change
@@ -28,13 +18,13 @@ try:
     import document_loading
 except ImportError as e:
     print(f"Error importing modules: {e}")
-    pass
+    # Fail hard on import error as per critique
+    raise e
 
-from web_app.database import init_db, get_db
-from web_app.models import User
-from web_app.auth import get_optional_user
+from web_app.database import init_db
 from web_app.routes_auth import router as auth_router
-from web_app.routes_history import router as history_router, save_history_entry
+from web_app.routes_history import router as history_router
+from web_app.routes_process import router as process_router
 
 app = FastAPI()
 
@@ -46,215 +36,12 @@ def on_startup():
 
 app.include_router(auth_router)
 app.include_router(history_router)
+app.include_router(process_router)
 
+# Mount static files
+current_dir = _current_dir
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 
 @app.get("/")
 async def read_index():
     return FileResponse(os.path.join(current_dir, 'static', 'index.html'))
-
-@app.post("/api/process")
-async def process_text(
-    request: Request,
-    action: str = Form(...),
-    text: str = Form(...),
-    strength: str = Form("medium"),
-    db: Session = Depends(get_db),
-):
-    try:
-        if not text:
-            raise HTTPException(status_code=400, detail="No text provided")
-
-        clean_text_val, changes = await asyncio.to_thread(build_changes_log, text)
-        
-        changes_list = [
-            {
-                "description": c.description,
-                "text_before": c.text_before if hasattr(c, 'text_before') else "", 
-                "text_after": c.text_after if hasattr(c, 'text_after') else ""
-            } 
-            for c in changes
-        ]
-
-        if action == "clean":
-            user = get_optional_user(request, db)
-            if user:
-                save_history_entry(db, user.id, "clean", text, clean_text_val)
-
-            return JSONResponse({
-                "clean_text": clean_text_val,
-                "changes": changes_list
-            })
-
-        elif action == "rewrite":
-            async def rewrite_stream_generator():
-                import time
-                t0 = time.time()
-                print(f"[TIMING] Start processing...")
-
-                yield json.dumps({
-                    "type": "stage", 
-                    "data": {
-                        "step": "clean",
-                        "clean_text": clean_text_val
-                    }
-                }) + "\n"
-
-                t1 = time.time()
-                
-                user = get_optional_user(request, db)
-                if user:
-                    if user.rewrite_lockout_until and user.rewrite_lockout_until > datetime.now(timezone.utc):
-                        remaining = user.rewrite_lockout_until - datetime.now(timezone.utc)
-                        hours, remainder = divmod(remaining.seconds, 3600)
-                        minutes, seconds = divmod(remainder, 60)
-                        
-                        yield json.dumps({
-                            "type": "error", 
-                            "data": f"Usage limit exceeded. Try again in {hours}h {minutes}m."
-                        }) + "\n"
-                        return
-
-                    current_usage = user.chars_used_current_session or 0
-                    params_limit = 2000
-                    
-                    if current_usage + len(clean_text_val) > params_limit:
-                        from datetime import timedelta
-                        user.rewrite_lockout_until = datetime.now(timezone.utc) + timedelta(hours=3)
-                        user.chars_used_current_session = 0
-                        db.commit()
-                        
-                        yield json.dumps({
-                            "type": "error", 
-                            "data": "Usage limit (2000 chars) exceeded. You are now on a 3-hour cooldown. You can still use Sanitization."
-                         }) + "\n"
-                        return
-                    
-                    user.chars_used_current_session = current_usage + len(clean_text_val)
-                    db.commit()
-
-                stats = await asyncio.to_thread(llm_validator.collect_stats, clean_text_val)
-                print(f"[TIMING] Stats collection took: {time.time() - t1:.2f}s")
-
-                critique_task = asyncio.create_task(
-                    asyncio.to_thread(llm_validator.get_llm_critique, clean_text_val, stats)
-                )
-
-                analysis_for_rewrite = {"statistical_metrics": stats, "llm_critique": None}
-                
-                yield json.dumps({
-                    "type": "stage",
-                    "data": { "step": "analyzed" }
-                }) + "\n"
-
-                rewritten_chunks_gen = []
-                t2 = time.time()
-                try:
-                    async for chunk in rewriting_agent.stream_rewrite(clean_text_val, analysis_for_rewrite):
-                        if chunk and isinstance(chunk, str):
-                            rewritten_chunks_gen.append(chunk)
-                            yield json.dumps({"type": "chunk", "data": chunk}) + "\n"
-                except Exception as e:  
-                    print(f"Rewrite error: {e}")
-                    yield json.dumps({"type": "error", "data": str(e)}) + "\n"
-                
-                print(f"[TIMING] Rewriting (Streaming) took: {time.time() - t2:.2f}s")
-                    
-                raw_rewritten_text = "".join(rewritten_chunks_gen)
-
-                yield json.dumps({
-                    "type": "stage",
-                    "data": { "step": "humanizing" }
-                }) + "\n"
-
-                t3 = time.time()
-                rewritten_text_final = await asyncio.to_thread(humanize, raw_rewritten_text, strength)
-                print(f"[TIMING] Humanization (Post-processing) took: {time.time() - t3:.2f}s")
-
-                yield json.dumps({
-                    "type": "stage",
-                    "data": { "step": "verifying" }
-                }) + "\n"
-
-                t4 = time.time()
-                rewritten_analysis = await asyncio.to_thread(
-                    llm_validator.verify_metrics_only, rewritten_text_final
-                )
-                print(f"[TIMING] Verification (Metrics) took: {time.time() - t4:.2f}s")
-
-                final_changes = list(changes_list)
-                final_changes.append({
-                    "description": "Applied AI Rewriting (Clean + Rewrite)  ",
-                    "text_before": clean_text_val,
-                    "text_after": rewritten_text_final
-                })
-
-                print(f"[TIMING] Results ready at: {time.time() - t0:.2f}s")
-
-                user = get_optional_user(request, db)
-                if user:
-                    save_history_entry(
-                        db, user.id, "rewrite", text, rewritten_text_final
-                    )
-
-                yield json.dumps({
-                    "type": "done",
-                    "data": {
-                        "clean_text": clean_text_val,
-                        "rewritten_text": rewritten_text_final,
-                        "changes": final_changes,
-                        "rewritten_metrics": rewritten_analysis.get("statistical_metrics", {})
-                    }
-                }) + "\n"
-
-                t5 = time.time()
-                try:
-                    llm_critique = await critique_task
-                except Exception:
-                    llm_critique = {}
-                ai_score = llm_critique.get("ai_score", 0.0)
-                print(f"[TIMING] LLM Critique waited: {time.time() - t5:.2f}s")
-                print(f"[TIMING] Total Process took: {time.time() - t0:.2f}s")
-
-                yield json.dumps({
-                    "type": "ai_score",
-                    "data": {
-                        "score": ai_score,
-                        "critique": llm_critique
-                    }
-                }) + "\n"
-
-            return StreamingResponse(rewrite_stream_generator(), media_type="application/x-ndjson")
-            
-        else:
-            raise HTTPException(status_code=400, detail="Invalid action")
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...)):
-    tmp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as tmp:
-            tmp_path = tmp.name
-
-        def save_upload_file():
-            with open(tmp_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-
-        await asyncio.to_thread(save_upload_file)
-            
-        try:
-            content = await asyncio.to_thread(document_loading.load_file_content, tmp_path)
-        finally:
-            if tmp_path and os.path.exists(tmp_path):
-                os.remove(tmp_path)
-        
-        return {"content": content}
-    except Exception as e:
-        if tmp_path and os.path.exists(tmp_path):
-            os.remove(tmp_path)
-        raise HTTPException(status_code=500, detail=f"File processing failed: {str(e)}")
