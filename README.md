@@ -88,31 +88,3 @@ The end goal of the rewritten text is to utilze both longer and shorter sentence
 *   **Missing API Key**: Ensure `.env` exists and contains `OPENAI_API_KEY`.
 *   **Model Load Error**: Run `python -m spacy download en_core_web_sm`.
 *   **Port In Use**: Use `uvicorn web_app.main:app --reload --port 8080` to try a different port.
-
-## Authors
-
-Contributors names and contact info
-
-ex. Dominique Pizzie  
-ex. [@DomPizzie](https://twitter.com/dompizzie)
-
-## Version History
-
-* 0.2
-    * Various bug fixes and optimizations
-    * See [commit change]() or See [release history]()
-* 0.1
-    * Initial Release
-
-## License
-
-This project is licensed under the [NAME HERE] License - see the LICENSE.md file for details
-
-## Acknowledgments
-is
-Inspiration, code snippets, etc.
-* [awesome-readme](https://github.com/matiassingers/awesome-readme)
-* [PurpleBooth](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2)
-* [dbader](https://github.com/dbader/readme-template)
-* [zenorocha](https://gist.github.com/zenorocha/4526327)
-* [fvcproductions](https://gist.github.com/fvcproductions/1bfc2d4aecb01a834b46)
