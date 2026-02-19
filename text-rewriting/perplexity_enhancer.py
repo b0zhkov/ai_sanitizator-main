@@ -89,18 +89,32 @@ def _replace_match(match: re.Match, replacements: List[str]) -> str:
     return _preserve_case(match.group(0), choice)
 
 
+def _build_optimized_regex(keys: List[str]) -> re.Pattern:
+    # Sort by length descending to match longest first
+    sorted_keys = sorted(keys, key=len, reverse=True)
+    pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
+    return re.compile(r'\b(' + pattern_str + r')\b', re.IGNORECASE)
 
 def _spice_adjectives(text: str) -> str:
-    for adj, spices in _ADJECTIVE_SPICE.items():
-        pattern = re.compile(r'\b' + re.escape(adj) + r'\b', re.IGNORECASE)
+    if not _ADJECTIVE_SPICE:
+        return text
         
-        def replacer(m, choices=spices):
-            if random.random() > _SPICE_RATE:
-                return m.group(0)
-            return _replace_match(m, choices)
+    # Create a lookup map for case-insensitive matching
+    lookup = {k.lower(): v for k, v in _ADJECTIVE_SPICE.items()}
+    keys = list(_ADJECTIVE_SPICE.keys())
+    pattern = _build_optimized_regex(keys)
+    
+    def replacer(m):
+        key = m.group(0).lower()
+        if key not in lookup:
+            return m.group(0)
+        
+        if random.random() > _SPICE_RATE:
+            return m.group(0)
             
-        text = pattern.sub(replacer, text)
-    return text
+        return _replace_match(m, lookup[key])
+
+    return pattern.sub(replacer, text)
 
 
 def _inject_bursts(text: str) -> str:

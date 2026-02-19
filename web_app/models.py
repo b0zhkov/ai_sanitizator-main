@@ -14,6 +14,10 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     salt = Column(String(64), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # Usage Limits
+    chars_used_current_session = Column(Integer, default=0)
+    rewrite_lockout_until = Column(DateTime, nullable=True)
 
     history_entries = relationship(
         "HistoryEntry", back_populates="user", cascade="all, delete-orphan"

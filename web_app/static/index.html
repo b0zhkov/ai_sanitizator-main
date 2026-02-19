@@ -397,6 +397,20 @@
                             </div>
                         </div>
                     </div>
+                    <div class="flex items-center gap-4 text-xs text-theme-muted font-mono" id="wordCountDisplay">
+                        <div
+                            class="flex items-center gap-1.5 bg-theme-navbar px-3 py-1.5 rounded-lg border border-theme-divider shadow-sm">
+                            <span class="material-symbols-outlined text-[16px] text-blue-400">text_fields</span>
+                            <span class="font-semibold text-theme-primary" id="wordCount">0</span>
+                            <span class="opacity-60">words</span>
+                        </div>
+                        <div
+                            class="flex items-center gap-1.5 bg-theme-navbar px-3 py-1.5 rounded-lg border border-theme-divider shadow-sm">
+                            <span class="material-symbols-outlined text-[16px] text-purple-400">data_object</span>
+                            <span class="font-semibold text-theme-primary" id="charCount">0</span>
+                            <span class="opacity-60">chars</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -698,6 +712,7 @@
 
                 const data = await response.json();
                 document.getElementById('rawText').value = data.content;
+                document.getElementById('rawText').dispatchEvent(new Event('input'));
 
             } catch (err) {
                 alert('Error uploading file: ' + err.message);
@@ -793,7 +808,19 @@
             }
         }
 
-        function handleStreamEvent(msg) {
+        async function handleStreamEvent(msg) {
+            if (msg.type === 'error') {
+                alert("⚠️ " + msg.data);
+                // Reset UI state to allow user to see what happened or try sanitization
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('input-panel').classList.remove('opacity-50', 'pointer-events-none');
+                // If we were in rewrite mode but failed, maybe show input panel again?
+                // But wait, if stream started, we hid input panel.
+                document.getElementById('results-panel').classList.add('hidden');
+                document.getElementById('input-panel').classList.remove('hidden');
+                return;
+            }
+
             if (msg.type === 'stage') {
                 if (msg.data.step === 'clean') {
                     document.getElementById('cleanResult').value = msg.data.clean_text;
@@ -1079,6 +1106,7 @@
     <script src="/static/export.js"></script>
     <script src="/static/auth.js"></script>
     <script src="/static/history.js"></script>
+    <script src="/static/word_count.js"></script>
 </body>
 
 </html>
