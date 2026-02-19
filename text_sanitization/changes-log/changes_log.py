@@ -3,6 +3,9 @@ import re
 import unicodedata
 import strip_inv_chars
 import normalizator
+import html_cleaner
+import whitespace_collapser
+import pii_redactor
 
 Change = namedtuple('Change', ['description', 'text_before', 'text_after'])
 
