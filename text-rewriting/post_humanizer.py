@@ -107,7 +107,7 @@ def _enforce_contractions(text: str) -> str:
         
     lookup = {k.lower(): v for k, v in _contraction_pairs.items()}
     keys = list(_contraction_pairs.keys())
-    pattern = _build_optimized_regex(keys)
+    pattern = shared_utils.build_optimized_regex(keys)
     
     def replacer(match):
         key = match.group(0).lower()
