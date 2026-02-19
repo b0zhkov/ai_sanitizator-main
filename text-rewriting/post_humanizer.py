@@ -153,42 +153,89 @@ def _split_sentences(text: str) -> List[str]:
     return [s for s in _SENTENCE_BOUNDARY.split(text) if s.strip()]
 
 
+def _build_optimized_regex(keys: List[str]) -> re.Pattern:
+    # Sort by length descending to match longest first
+    sorted_keys = sorted(keys, key=len, reverse=True)
+    pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
+    return re.compile(r'\b(' + pattern_str + r')\b', re.IGNORECASE)
+
 def _enforce_contractions(text: str) -> str:
-    for expanded, contracted in _contraction_pairs.items():
-        pattern = re.compile(r'\b' + re.escape(expanded) + r'\b', re.IGNORECASE)
-        text = pattern.sub(_make_contraction_replacer(contracted), text)
-    return text
+    if not _contraction_pairs:
+        return text
+        
+    lookup = {k.lower(): v for k, v in _contraction_pairs.items()}
+    keys = list(_contraction_pairs.keys())
+    pattern = _build_optimized_regex(keys)
+    
+    def replacer(match):
+        key = match.group(0).lower()
+        if key not in lookup:
+            return match.group(0)
+        return _preserve_case(match.group(0), lookup[key])
+        
+    return pattern.sub(replacer, text)
 
 
-def _fuzz_single_transition(sentence: str) -> str:
-    for formal, alternatives in _transition_alternatives.items():
-        if not sentence.startswith(formal):
-            continue
-
-        remainder = _substr(sentence, len(formal)).lstrip()
-        if not remainder:
-            return sentence
-
-        roll = random.random()
-
-        if roll < TRANSITION_DROP_RATE:
-            return _capitalize_first(remainder)
-
-        if roll < TRANSITION_DROP_RATE + TRANSITION_REPLACE_RATE:
-            return random.choice(alternatives) + " " + remainder
-
+def _fuzz_single_transition_optimized(sentence: str, pattern: re.Pattern, lookup: Dict[str, List[str]]) -> str:
+    # Check if sentence starts with any of the transitions
+    # The pattern matches at \b, but transitions are usually at start.
+    # We want to match ONLY at the beginning of the string.
+    # So we use pattern.match (anchored at pos 0) if the pattern started with ^
+    # But our shared pattern generator uses \b.
+    # We need a specific pattern for transitions: ^(Formal1|Formal2|...)
+    
+    match = pattern.match(sentence)
+    if not match:
         return sentence
+            
+    formal = match.group(0) # This picks the text that matched
+    # But we need the case-insensitive key to lookup
+    key = formal.lower()
+    
+    # In lookup, keys are lowercase? 
+    # _load_transition_csv loads them as is. 
+    # We need to ensure lookup map is lowercased.
+    if key not in lookup:
+        # Fallback to original flow if something weird happens with casing
+        # or if the match wasn't in our lookup
+        return sentence
+
+    remainder = _substr(sentence, len(formal)).lstrip()
+    if not remainder:
+        return sentence
+
+    roll = random.random()
+
+    if roll < TRANSITION_DROP_RATE:
+        return _capitalize_first(remainder)
+
+    if roll < TRANSITION_DROP_RATE + TRANSITION_REPLACE_RATE:
+        alternatives = lookup[key]
+        return random.choice(alternatives) + " " + remainder
 
     return sentence
 
 
 def _fuzz_transitions(text: str) -> str:
+    if not _transition_alternatives:
+        return text
+
+    # Build optimized pattern for transitions
+    # Transitions are phrase starts.
+    keys = list(_transition_alternatives.keys())
+    sorted_keys = sorted(keys, key=len, reverse=True)
+    pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
+    # Match at start of string
+    pattern = re.compile(r'^(' + pattern_str + r')\b', re.IGNORECASE)
+    
+    lookup = {k.lower(): v for k, v in _transition_alternatives.items()}
+
     paragraphs = text.split('\n\n')
     result = []
 
     for paragraph in paragraphs:
         sentences = _split_sentences(paragraph)
-        fuzzed = [_fuzz_single_transition(s) for s in sentences]
+        fuzzed = [_fuzz_single_transition_optimized(s, pattern, lookup) for s in sentences]
         result.append(' '.join(fuzzed))
 
     return '\n\n'.join(result)
@@ -197,7 +244,7 @@ def _fuzz_transitions(text: str) -> str:
 def _inject_into_sentences(sentences: List[str]) -> List[str]:
     if len(sentences) < 3:
         return sentences
-
+        
     result = [sentences[0]]
 
     for i in range(1, len(sentences)):
@@ -234,17 +281,23 @@ def _inject_conjunctions(text: str) -> str:
 
 
 def _downgrade_vocabulary(text: str) -> str:
-    sorted_swaps = sorted(
-        _vocabulary_swaps.items(),
-        key=lambda pair: len(pair[0]),
-        reverse=True
-    )
+    if not _vocabulary_swaps:
+        return text
+        
+    lookup = {k.lower(): v for k, v in _vocabulary_swaps.items()}
+    keys = list(_vocabulary_swaps.keys())
+    pattern = _build_optimized_regex(keys)
+    
+    def replacer(match):
+        if random.random() >= VOCABULARY_SWAP_RATE:
+            return match.group(0)
+            
+        key = match.group(0).lower()
+        if key not in lookup:
+            return match.group(0)
+        return _preserve_case(match.group(0), lookup[key])
 
-    for elevated, common in sorted_swaps:
-        pattern = re.compile(r'\b' + re.escape(elevated) + r'\b', re.IGNORECASE)
-        text = pattern.sub(_make_vocabulary_replacer(common), text)
-
-    return text
+    return pattern.sub(replacer, text)
 
 
 def humanize(text: str, strength: str = "medium") -> str:

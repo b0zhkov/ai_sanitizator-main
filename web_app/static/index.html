@@ -793,7 +793,19 @@
             }
         }
 
-        function handleStreamEvent(msg) {
+        async function handleStreamEvent(msg) {
+            if (msg.type === 'error') {
+                 alert("⚠️ " + msg.data);
+                 // Reset UI state to allow user to see what happened or try sanitization
+                 document.getElementById('loading').style.display = 'none';
+                 document.getElementById('input-panel').classList.remove('opacity-50', 'pointer-events-none');
+                 // If we were in rewrite mode but failed, maybe show input panel again?
+                 // But wait, if stream started, we hid input panel.
+                 document.getElementById('results-panel').classList.add('hidden');
+                 document.getElementById('input-panel').classList.remove('hidden');
+                 return;
+            }
+
             if (msg.type === 'stage') {
                 if (msg.data.step === 'clean') {
                     document.getElementById('cleanResult').value = msg.data.clean_text;

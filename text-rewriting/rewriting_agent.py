@@ -32,7 +32,7 @@ class RewritingAgent:
         self.llm = llm_info.llm
         self.chain = (rewriting_prompt | self.llm).with_retry(stop_after_attempt=3)
 
-    def stream_rewrite(self, text: str, analysis: dict):
+    async def stream_rewrite(self, text: str, analysis: dict):
         has_yielded_content = False
         
         buffer = ""
@@ -43,7 +43,7 @@ class RewritingAgent:
         try:
             analysis_str = json.dumps(analysis, indent=2)
             
-            for chunk in self.chain.stream({
+            async for chunk in self.chain.astream({
                 "text": text,
                 "analysis": analysis_str
             }):

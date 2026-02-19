@@ -13,8 +13,10 @@ import tempfile
 from typing import List, Optional
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 current_dir = _current_dir
 project_root = _project_root
@@ -100,6 +102,38 @@ async def process_text(
                 }) + "\n"
 
                 t1 = time.time()
+                
+                user = get_optional_user(request, db)
+                if user:
+                    if user.rewrite_lockout_until and user.rewrite_lockout_until > datetime.now(timezone.utc):
+                        remaining = user.rewrite_lockout_until - datetime.now(timezone.utc)
+                        hours, remainder = divmod(remaining.seconds, 3600)
+                        minutes, seconds = divmod(remainder, 60)
+                        
+                        yield json.dumps({
+                            "type": "error", 
+                            "data": f"Usage limit exceeded. Try again in {hours}h {minutes}m."
+                        }) + "\n"
+                        return
+
+                    current_usage = user.chars_used_current_session or 0
+                    params_limit = 2000
+                    
+                    if current_usage + len(clean_text_val) > params_limit:
+                        from datetime import timedelta
+                        user.rewrite_lockout_until = datetime.now(timezone.utc) + timedelta(hours=3)
+                        user.chars_used_current_session = 0
+                        db.commit()
+                        
+                        yield json.dumps({
+                            "type": "error", 
+                            "data": "Usage limit (2000 chars) exceeded. You are now on a 3-hour cooldown. You can still use Sanitization."
+                         }) + "\n"
+                        return
+                    
+                    user.chars_used_current_session = current_usage + len(clean_text_val)
+                    db.commit()
+
                 stats = await asyncio.to_thread(llm_validator.collect_stats, clean_text_val)
                 print(f"[TIMING] Stats collection took: {time.time() - t1:.2f}s")
 
@@ -117,7 +151,7 @@ async def process_text(
                 rewritten_chunks_gen = []
                 t2 = time.time()
                 try:
-                    for chunk in rewriting_agent.stream_rewrite(clean_text_val, analysis_for_rewrite):
+                    async for chunk in rewriting_agent.stream_rewrite(clean_text_val, analysis_for_rewrite):
                         if chunk and isinstance(chunk, str):
                             rewritten_chunks_gen.append(chunk)
                             yield json.dumps({"type": "chunk", "data": chunk}) + "\n"

@@ -1,3 +1,6 @@
+//This file is used to provide export functionalities for the user.
+//It contains functions used for dowloading files in different formats (txt, docx and pdf)
+//Written in JS to be agile and keep the loading process fast.
 const Export = (() => {
     function downloadTxt(text) {
         if (!text) return;
