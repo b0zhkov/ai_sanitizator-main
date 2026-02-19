@@ -1,11 +1,11 @@
 """
-The AI phrase detector identifies and flag common AI-generated phrases and mannerisms
+The AI phrase detector identifies and flags common AI-generated phrases and mannerisms
 that are highly indicative of LLM output.
 
 It achieves this by:
 1. Loading a list of known AI phrases from a CSV file.
-2. using regex to match these phrases in the text, respecting word boundaries.
-3. returning the count and list of found phrases.
+2. Using regex to match these phrases in the text, respecting word boundaries.
+3. Returning the count and list of found phrases.
 
 The end goal is to catch specific "fingerprints" of AI writing that statistical methods might miss.
 """
@@ -14,6 +14,8 @@ import os
 import re
 
 _ai_phrases_cache = None
+
+__all__ = ['analyze_ai_phrases']
 
 def analyze_ai_phrases(text):
     global _ai_phrases_cache

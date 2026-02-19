@@ -1,5 +1,11 @@
 import sys
 import os
+import logging
+from contextlib import asynccontextmanager
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 _project_root = os.path.dirname(current_dir)
@@ -12,25 +18,15 @@ from fastapi.responses import FileResponse
 
 try:
     from changes_log import build_changes_log, Change
-    import llm_validator
-    from rewriting_agent import rewriting_agent
-    from post_humanizer import humanize
     import document_loading
 except ImportError as e:
-    logging.error(f"Error importing modules: {e}")
+    logging.error(f"Error importing core text processing modules: {e}")
     raise e
 
 from web_app.database import init_db
 from web_app.routes_auth import router as auth_router
 from web_app.routes_history import router as history_router
 from web_app.routes_process import router as process_router
-
-import logging
-from contextlib import asynccontextmanager
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
