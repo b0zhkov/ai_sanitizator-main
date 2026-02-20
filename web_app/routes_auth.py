@@ -1,10 +1,10 @@
-import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from email_validator import validate_email, EmailNotValidError
 
 from web_app.database import get_db
 from web_app.models import User
@@ -19,8 +19,6 @@ from web_app.auth import (
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
-EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-
 
 class AuthRequest(BaseModel):
     email: str
@@ -28,27 +26,39 @@ class AuthRequest(BaseModel):
 
 
 def _validate_credentials(email: str, password: str):
-    if not EMAIL_PATTERN.match(email):
-        raise HTTPException(status_code=400, detail="Invalid email format")
+
+    blocked_domains = ['admin.com', 'test.com', 'example.com', 'dummy.com', 'mailinator.com']
+
+    domain_part = email.split('@')[-1].lower() if '@' in email else ''
+
+    if domain_part in blocked_domains:
+        raise HTTPException(status_code=400, detail=f"Domain '{domain_part}' is not allowed for registration")
+
+    try:
+        valid = validate_email(email, check_deliverability=True)
+        email = valid.normalized
+        
+    except EmailNotValidError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     if len(password) < 6:
         raise HTTPException(
             status_code=400, detail="Password must be at least 6 characters"
         )
-
+    return email
 
 @router.post("/register")
 def register(body: AuthRequest, db: Session = Depends(get_db)):
-    _validate_credentials(body.email, body.password)
+    valid_email = _validate_credentials(body.email, body.password)
 
-    existing = db.query(User).filter(User.email == body.email).first()
+    existing = db.query(User).filter(User.email == valid_email).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
     salt = generate_salt()
     hashed = hash_password(body.password, salt)
 
-    user = User(email=body.email, password_hash=hashed, salt=salt)
+    user = User(email=valid_email, password_hash=hashed, salt=salt)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -56,10 +66,17 @@ def register(body: AuthRequest, db: Session = Depends(get_db)):
     token = create_token(user.id)
     return JSONResponse({"token": token, "email": user.email})
 
-
 @router.post("/login")
 def login(body: AuthRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == body.email).first()
+    try:
+        # Normalize email for login, but skip deliverability check
+        valid = validate_email(body.email, check_deliverability=False)
+        normalized_email = valid.normalized
+    except EmailNotValidError:
+        # If the email is fundamentally invalid, it won't be in our DB
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user or not verify_password(body.password, user.salt, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
