@@ -13,7 +13,7 @@ from web_app.database import get_db
 from web_app.auth import get_optional_user
 from web_app.routes_history import save_history_entry
 
-from web_app.services.rate_limiter import check_rate_limit, update_usage
+from web_app.services.rate_limiter import check_rate_limit, update_usage, anonymous_rewrite_limiter
 from web_app.services.rewrite_pipeline import rewrite_stream_generator
 
 from changes_log import build_changes_log
@@ -64,6 +64,12 @@ async def process_text(
                     return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
                 update_usage(user, db, len(clean_text_val))
+            else:
+                is_allowed, error_msg = anonymous_rewrite_limiter.check(request)
+                if not is_allowed:
+                    async def error_generator():
+                         yield json.dumps({"type": "error", "data": error_msg}) + "\n"
+                    return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
             return StreamingResponse(
                 rewrite_stream_generator(clean_text_val, request, db, user, changes_list, t0, strength),

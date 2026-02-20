@@ -31,6 +31,15 @@ from web_app.routes_process import router as process_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    
+    if os.getenv("AUTH_SECRET") is None:
+        import warnings
+        warnings.warn(
+            "AUTH_SECRET not set! Using insecure fallback. Set AUTH_SECRET in production to prevent security vulnerabilities.",
+            stacklevel=2,
+            category=RuntimeWarning
+        )
+        
     yield
 
 app = FastAPI(lifespan=lifespan)

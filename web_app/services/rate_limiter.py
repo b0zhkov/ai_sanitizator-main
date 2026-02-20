@@ -1,6 +1,9 @@
 from datetime import datetime, timezone, timedelta
 import json
 import asyncio
+import time
+from collections import defaultdict
+from fastapi import Request
 
 
 CHAR_LIMIT = 2000
@@ -40,3 +43,40 @@ def update_usage(user, db, cost: int):
     if user:
         user.chars_used_current_session = (user.chars_used_current_session or 0) + cost
         db.commit()
+
+class IPRateLimiter:
+    def __init__(self, max_requests: int = 5, window_seconds: int = 60, max_entries: int = 1000):
+        self.max_requests = max_requests
+        self.window = window_seconds
+        self.max_entries = max_entries
+        self._hits: dict[str, list[float]] = defaultdict(list)
+    
+    def check(self, request: Request) -> tuple[bool, str | None]:
+        """
+        Checks if the IP has exceeded the rate limit.
+        Returns a tuple (is_allowed, error_message_or_none).
+        """
+        ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        
+        # Periodic cleanup if dictionary grows too large to prevent memory leak
+        if len(self._hits) > self.max_entries:
+            self._prune_all(now)
+            
+        # Prune old entries for this specific IP
+        self._hits[ip] = [t for t in self._hits[ip] if now - t < self.window]
+        
+        if len(self._hits[ip]) >= self.max_requests:
+            return False, "Rate limit exceeded for anonymous usage. Try again later or log in."
+        
+        self._hits[ip].append(now)
+        return True, None
+
+    def _prune_all(self, now: float):
+        """Cleans up expired IP entries across the entire dictionary."""
+        for ip in list(self._hits.keys()):
+            self._hits[ip] = [t for t in self._hits[ip] if now - t < self.window]
+            if not self._hits[ip]:
+                del self._hits[ip]
+
+anonymous_rewrite_limiter = IPRateLimiter(max_requests=5, window_seconds=60)
