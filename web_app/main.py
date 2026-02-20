@@ -5,19 +5,17 @@ from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 _project_root = os.path.dirname(current_dir)
 sys.path.insert(0, _project_root)
 import _paths 
-
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
 try:
-    from changes_log import build_changes_log, Change
+    from changes_log import build_changes_log
     import document_loading
 except ImportError as e:
     logging.error(f"Error importing core text processing modules: {e}")

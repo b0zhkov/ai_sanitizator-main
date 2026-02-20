@@ -36,81 +36,47 @@ def apply_regex_changes(text, regex_patterns):
 def build_changes_log(text):
     changes = []
     
-    new_text = html_cleaner.clean_html(text)
-    if new_text != text:
-        changes.append(Change(
-            description="Stripped HTML Tags",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
+    # Define the sequence of transformations
+    transformations = [
+        ("Stripped HTML Tags", html_cleaner.clean_html),
+        ("Stripped Markdown Syntax", markdown_stripper.strip_markdown),
+        ("Applied NFKC Unicode Normalization", lambda str_: unicodedata.normalize('NFKC', str_)),
+        ("Fixed Text Encoding", strip_inv_chars.validate_and_fix_encoding),
+    ]
 
-    new_text = markdown_stripper.strip_markdown(text)
-    if new_text != text:
-        changes.append(Change(
-            description="Stripped Markdown Syntax",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
+    for description, func in transformations:
+        new_text = func(text)
+        if new_text != text:
+            changes.append(Change(
+                description=description,
+                text_before=text,
+                text_after=new_text
+            ))
+            text = new_text
 
-    new_text = unicodedata.normalize('NFKC', text)
-    if new_text != text:
-        changes.append(Change(
-            description="Applied NFKC Unicode Normalization",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
-
-    new_text = strip_inv_chars.validate_and_fix_encoding(text)
-    if new_text != text:
-        changes.append(Change(
-            description="Fixed Text Encoding",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
-
+    # Apply the first set of regex patterns
     regex_changes, text = apply_regex_changes(text, strip_inv_chars.PATTERNS)
     changes.extend(regex_changes)
     
-    new_text = pii_redactor.redact_pii(text)
-    if new_text != text:
-        changes.append(Change(
-            description="Redacted PII (Emails, URLs, IPs)",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
+    # Continued transformations
+    post_regex_transformations = [
+        ("Redacted PII (Emails, URLs, IPs)", pii_redactor.redact_pii),
+        ("Removed Emojis", emoji_cleaner.remove_emojis),
+        ("Redacted Profanity", profanity_filter.redact_profanity),
+        ("Collapsed Excessive Whitespace", whitespace_collapser.collapse_whitespace),
+    ]
 
-    new_text = emoji_cleaner.remove_emojis(text)
-    if new_text != text:
-        changes.append(Change(
-            description="Removed Emojis",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
+    for description, func in post_regex_transformations:
+        new_text = func(text)
+        if new_text != text:
+            changes.append(Change(
+                description=description,
+                text_before=text,
+                text_after=new_text
+            ))
+            text = new_text
 
-    new_text = profanity_filter.redact_profanity(text)
-    if new_text != text:
-        changes.append(Change(
-            description="Redacted Profanity",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
-
-    new_text = whitespace_collapser.collapse_whitespace(text)
-    if new_text != text:
-        changes.append(Change(
-            description="Collapsed Excessive Whitespace",
-            text_before=text,
-            text_after=new_text
-        ))
-        text = new_text
-    
+    # Apply final regex patterns
     regex_changes, text = apply_regex_changes(text, normalizator.PATTERNS)
     changes.extend(regex_changes)
     
