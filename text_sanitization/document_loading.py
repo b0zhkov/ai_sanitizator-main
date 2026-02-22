@@ -13,7 +13,7 @@ The end goal is to abstract away the file reading complexity and return a clean 
 import os
 from bs4 import BeautifulSoup
 import docx2txt
-from pypdf import PdfReader
+import fitz
 
 def _load_txt(file_path: str) -> str:
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -31,8 +31,9 @@ def _load_html(file_path: str) -> str:
 
 
 def _load_pdf(file_path: str) -> str:
-    reader = PdfReader(file_path)
-    pages = [page.extract_text() or '' for page in reader.pages]
+    doc = fitz.open(file_path)
+    pages = [page.get_text() or '' for page in doc]
+    doc.close()
     return '\n'.join(pages)
 
 

@@ -18,7 +18,7 @@ import sys
 import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
 
-import _paths  # noqa: E402 — centralised path setup
+import _paths
 
 try:
     nltk.data.find('tokenizers/punkt')
@@ -27,9 +27,6 @@ except LookupError:
         nltk.download('punkt')
     except Exception as e:
         print(f"Warning: Failed to download 'punkt' tokenizer: {e}")
-        # Proceeding without punkt might cause issues later if not handled, 
-        # but prevents immediate crash on import.
-
 
 
 def tokenize_text(text: str) -> list[str]:
@@ -53,11 +50,13 @@ def _extract_ngrams(words: list[str], min_length: int, max_length: int) -> list[
 def _find_repetitions(items: list[str]) -> list[str]:
     seen = {}
     repeated = []
+    repeated_normalized = set()
     for item in items:
         normalized = item.lower()
         if normalized in seen:
-            if normalized not in {r.lower() for r in repeated}:
+            if normalized not in repeated_normalized:
                 repeated.append(seen[normalized])
+                repeated_normalized.add(normalized)
         else:
             seen[normalized] = item
     return repeated

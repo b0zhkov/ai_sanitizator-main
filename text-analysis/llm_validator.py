@@ -15,7 +15,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 import csv
 
-import _paths  # noqa: E402 — centralised path setup
+import _paths
 import hedging_filler_detector as hedging
 import repetition_detection as repetition
 import repeating_headings
@@ -93,25 +93,28 @@ def _analyze_verb_frequency(text: str) -> dict:
 def _analyze_punctuation(text: str) -> dict:
     return punctuation_checker.analyze_punctuation_structure(text)
 
-_excess_words_cache = None
+_excess_words_patterns = None
 
 @_safe_analyze
 def _check_excess_words(text: str) -> dict:
-    global _excess_words_cache
+    global _excess_words_patterns
     import re
     
-    if _excess_words_cache is None:
+    if _excess_words_patterns is None:
         csv_path = os.path.join(os.path.dirname(__file__), 'excess_words.csv')
         with open(csv_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
-            _excess_words_cache = [row['word'].strip().lower() for row in reader if row.get('word', '').strip()]
+            _excess_words_patterns = []
+            for row in reader:
+                word = row.get('word', '').strip().lower()
+                if word:
+                    pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+                    _excess_words_patterns.append((word, pattern))
         
     flagged = []
     
-    # Use regex for word boundaries
-    for word in _excess_words_cache:
-        pattern = r'\b' + re.escape(word) + r'\b'
-        if re.search(pattern, text, re.IGNORECASE):
+    for word, pattern in _excess_words_patterns:
+        if pattern.search(text):
             flagged.append(word)
             
     return {"count": len(flagged), "words": flagged[:20]}
