@@ -4,7 +4,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 
-_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sanitizator.db")
+if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"):
+    _DB_PATH = "/tmp/sanitizator.db"
+else:
+    _DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sanitizator.db")
+
 _DATABASE_URL = f"sqlite:///{_DB_PATH}"
 
 engine = create_engine(_DATABASE_URL, connect_args={"check_same_thread": False})
