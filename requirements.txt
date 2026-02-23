@@ -45,7 +45,6 @@ marshmallow==3.26.2
 multidict==6.7.1
 murmurhash==1.0.15
 mypy_extensions==1.1.0
-nltk==3.9.2
 orjson==3.11.7
 ormsgpack==1.12.2
 packaging==26.0

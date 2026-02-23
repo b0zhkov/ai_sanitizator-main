@@ -6,13 +6,7 @@ such as email addresses, URLs, and IP addresses.
 """
 import re
 import socket
-
-_EMAIL_REGEX = re.compile(
-    r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-)
-_URL_REGEX = re.compile(
-    r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+|www\.[-\w]+\.[-\w]+'
-)
+import shared_nlp
 
 _IPV4_REGEX = re.compile(
     r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
@@ -22,8 +16,19 @@ def redact_pii(text: str) -> str:
     if not text:
         return ""
         
-    text = _EMAIL_REGEX.sub("[EMAIL]", text)
-    text = _URL_REGEX.sub("[URL]", text)
+    nlp = shared_nlp.get_nlp_light()
+    doc = nlp(text)
+    
+    result = []
+    for token in doc:
+        if token.like_email:
+            result.append("[EMAIL]" + token.whitespace_)
+        elif token.like_url:
+            result.append("[URL]" + token.whitespace_)
+        else:
+            result.append(token.text_with_ws)
+            
+    text = "".join(result)
     
     def replace_ip(match):
         ip_str = match.group(0)

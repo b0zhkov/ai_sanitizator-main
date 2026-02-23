@@ -13,41 +13,21 @@ The end goal is to highlight repetitive phrasing that needs variation.
 """
 from __future__ import annotations
 
-import os
-import sys
-import nltk
-from nltk.tokenize import word_tokenize, sent_tokenize
+from collections import Counter
+import shared_nlp
 
 import _paths
 
-if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"):
-    _NLTK_DIR = "/tmp/nltk_data"
-    os.makedirs(_NLTK_DIR, exist_ok=True)
-    if _NLTK_DIR not in nltk.data.path:
-        nltk.data.path.append(_NLTK_DIR)
-    
-    try:
-        nltk.data.find('tokenizers/punkt', paths=[_NLTK_DIR])
-    except LookupError:
-        try:
-            nltk.download('punkt', download_dir=_NLTK_DIR)
-        except Exception as e:
-            print(f"Warning: Failed to download 'punkt' tokenizer to /tmp: {e}")
-else:
-    try:
-        nltk.data.find('tokenizers/punkt')
-    except LookupError:
-        try:
-            nltk.download('punkt')
-        except Exception as e:
-            print(f"Warning: Failed to download 'punkt' tokenizer: {e}")
-
 
 def tokenize_text(text: str) -> list[str]:
-    return word_tokenize(text)
+    nlp = shared_nlp.get_nlp_light()
+    doc = nlp(text)
+    return [token.text for token in doc if not token.is_punct and not token.is_space]
 
 def tokenize_text_into_sentences(text: str) -> list[str]:
-    return sent_tokenize(text)
+    nlp = shared_nlp.get_nlp_light()
+    doc = nlp(text)
+    return [sent.text for sent in doc.sents]
 
 def get_repeating_keyphrases(text: str, min_phrase_length: int = 2, max_phrase_length: int = 5) -> list[str]:
     words = tokenize_text(text)
@@ -55,22 +35,21 @@ def get_repeating_keyphrases(text: str, min_phrase_length: int = 2, max_phrase_l
     return _find_repetitions(keyphrases)
 
 def _extract_ngrams(words: list[str], min_length: int, max_length: int) -> list[str]:
-    return [
-        ' '.join(gram)
-        for n in range(min_length, max_length + 1)
-        for gram in nltk.ngrams(words, n)
-    ]
+    ngrams = []
+    for n in range(min_length, max_length + 1):
+        for i in range(len(words) - n + 1):
+            ngrams.append(' '.join(words[i:i+n]))
+    return ngrams
 
 def _find_repetitions(items: list[str]) -> list[str]:
-    seen = {}
-    repeated = []
-    repeated_normalized = set()
+    counts = Counter(item.lower() for item in items)
+    # We want to return the original case-version of the first occurrence
+    # Or just returning the lowercase version is fine. The original code returned the original case.
+    # Let's preserve original case for the output.
+    seen_originals = {}
     for item in items:
-        normalized = item.lower()
-        if normalized in seen:
-            if normalized not in repeated_normalized:
-                repeated.append(seen[normalized])
-                repeated_normalized.add(normalized)
-        else:
-            seen[normalized] = item
-    return repeated
+        lower_item = item.lower()
+        if lower_item not in seen_originals:
+            seen_originals[lower_item] = item
+            
+    return [seen_originals[normalized] for normalized, count in counts.items() if count > 1]

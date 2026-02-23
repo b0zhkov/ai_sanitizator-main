@@ -2,7 +2,7 @@
 Profanity Filter module.
 
 This module provides functionality to censor profane words.
-It uses a predefined list of words and replaces them with [CENSORED].
+It uses a predefined list of words and replaces them with dynamic asterisks (***).
 """
 import re
 

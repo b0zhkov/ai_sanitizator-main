@@ -11,36 +11,47 @@ The end goal is to catch specific "fingerprints" of AI writing that statistical 
 """
 import csv
 import os
-import re
 
-_ai_phrases_cache = None
+import shared_nlp
+from spacy.matcher import PhraseMatcher
+
+_nlp = None
+_matcher = None
 
 __all__ = ['analyze_ai_phrases']
 
+def _initialize_matcher():
+    global _nlp, _matcher
+    if _matcher is not None:
+        return
+
+    _nlp = shared_nlp.get_nlp_light()
+    _matcher = PhraseMatcher(_nlp.vocab, attr="LOWER")
+
+    csv_path = os.path.join(os.path.dirname(__file__), 'ai_phrases.csv')
+    phrases = []
+    if os.path.exists(csv_path):
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                phrase = row.get('phrase', '').strip()
+                if phrase:
+                    phrases.append(phrase)
+    
+    patterns = [_nlp.make_doc(text) for text in phrases]
+    _matcher.add("AI_PHRASE", patterns)
+
+
 def analyze_ai_phrases(text):
-    global _ai_phrases_cache
     try:
-        csv_path = os.path.join(os.path.dirname(__file__), 'ai_phrases.csv')
+        _initialize_matcher()
+        doc = _nlp(text)
+        matches = _matcher(doc)
         
         found_phrases = []
-        text_lower = text.lower()
-        
-        if _ai_phrases_cache is None:
-            _ai_phrases_cache = []
-            if os.path.exists(csv_path):
-                with open(csv_path, 'r', encoding='utf-8') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        if row['phrase'].strip():
-                            _ai_phrases_cache.append(row['phrase'].strip().lower())
+        for match_id, start, end in matches:
+            found_phrases.append(doc[start:end].text.lower())
             
-            _ai_phrases_cache.sort(key=len, reverse=True)
-        
-        for phrase in _ai_phrases_cache:
-            pattern = re.compile(r'\b' + re.escape(phrase) + r'\b')
-            if pattern.search(text_lower):
-                found_phrases.append(phrase)
-                
         return {
             "count": len(found_phrases),
             "phrases": found_phrases

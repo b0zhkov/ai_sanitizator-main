@@ -10,6 +10,9 @@ while the conversational ones are more typically used by humans.
 import re
 from typing import Dict, Any
 
+_STRUCTURED_PATTERN = re.compile(r'[;:•()]')
+_CONVERSATIONAL_PATTERN = re.compile(r'[—?!]')
+
 def analyze_punctuation_structure(text: str) -> Dict[str, Any]:
     if not text:
         return {
@@ -19,11 +22,8 @@ def analyze_punctuation_structure(text: str) -> Dict[str, Any]:
             "structure_ratio": 0.0
         }
 
-    structured_pattern = r'[;:•()]'
-    structured_matches = re.findall(structured_pattern, text)
-    
-    conversational_pattern = r'[—?!]'
-    conversational_matches = re.findall(conversational_pattern, text)
+    structured_matches = _STRUCTURED_PATTERN.findall(text)
+    conversational_matches = _CONVERSATIONAL_PATTERN.findall(text)
 
     s_count = len(structured_matches)
     c_count = len(conversational_matches)

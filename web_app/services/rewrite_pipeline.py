@@ -16,6 +16,7 @@ except ImportError:
 from web_app.routes_history import save_history_entry
 
 async def rewrite_stream_generator(
+    raw_text: str,
     clean_text_val: str,
     request, 
     db, 
@@ -111,7 +112,7 @@ async def rewrite_stream_generator(
     # 6. History Saving
     if user:
         save_history_entry(
-            db, user.id, "rewrite", request_text=clean_text_val, result_text=rewritten_text_final
+            db, user.id, "rewrite", request_text=raw_text, result_text=rewritten_text_final
         )
         # Note: 'request_text' argument name in save_history_entry might be 'text'.
         # Checking logic calls: save_history_entry(db, user.id, "rewrite", text, rewritten_text_final)

@@ -71,7 +71,7 @@ async def process_text(
                     return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
             return StreamingResponse(
-                rewrite_stream_generator(clean_text_val, request, db, user, changes_list, t0, strength),
+                rewrite_stream_generator(text, clean_text_val, request, db, user, changes_list, t0, strength),
                 media_type="application/x-ndjson"
             )
             

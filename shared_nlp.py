@@ -10,6 +10,7 @@ import spacy.cli
 
 _nlp_full = None
 _nlp_light = None
+_nlp_tagger = None
 
 
 def get_nlp_full():
@@ -22,6 +23,17 @@ def get_nlp_full():
             spacy.cli.download("en_core_web_sm")
             _nlp_full = spacy.load("en_core_web_sm")
     return _nlp_full
+
+def get_nlp_tagger():
+    """Returns a model with NER, textcat, entity_linker disabled, but keeps tagger and lemmatizer."""
+    global _nlp_tagger
+    if _nlp_tagger is None:
+        try:
+            _nlp_tagger = spacy.load("en_core_web_sm", disable=["ner", "textcat", "entity_linker"])
+        except OSError:
+            spacy.cli.download("en_core_web_sm")
+            _nlp_tagger = spacy.load("en_core_web_sm", disable=["ner", "textcat", "entity_linker"])
+    return _nlp_tagger
 
 
 def get_nlp_light():

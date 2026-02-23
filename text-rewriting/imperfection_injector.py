@@ -134,28 +134,35 @@ def _vary_paragraphs(text: str) -> str:
 
 
 def _fuzz_spelling(text: str) -> str:
-    words = text.split(' ')
+    nlp = _get_nlp()
+    if nlp is None:
+        return text
+    
+    doc = nlp(text)
     result = []
-    for w in words:
-        clean_w = w.strip(".,!?\"';:()")
-        if not clean_w:
-            result.append(w)
+    
+    for token in doc:
+        if token.is_punct or token.is_space:
+            result.append(token.text_with_ws)
             continue
             
+        clean_w = token.text
         w_lower = clean_w.lower()
+        new_w = clean_w
+        
         if w_lower in _COMMON_TYPOS and random.random() < _TYPO_RATE:
             new_w = _COMMON_TYPOS[w_lower]
             if clean_w[0].isupper():
                 new_w = new_w.capitalize()
-            w = w.replace(clean_w, new_w)
         elif w_lower in _CONTRACTION_TYPOS and random.random() < _CONTRACTION_TYPO_RATE:
             new_w = _CONTRACTION_TYPOS[w_lower]
             if clean_w[0].isupper():
                 new_w = new_w.capitalize()
-            w = w.replace(clean_w, new_w)
-            
-        result.append(w)
-    return ' '.join(result)
+                
+        # Append modified word along with original whitespace
+        result.append(new_w + token.whitespace_)
+        
+    return "".join(result)
 
 
 def _inject_typographical_quirks(text: str) -> str:

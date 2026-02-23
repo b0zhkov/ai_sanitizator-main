@@ -26,7 +26,7 @@ def analyze_verb_frequency(text: str) -> Dict[str, Any]:
     if not text or not text.strip():
         return _build_empty_result()
 
-    nlp = shared_nlp.get_nlp_full()
+    nlp = shared_nlp.get_nlp_tagger()
     doc = nlp(text)
     
     total_verbs = 0

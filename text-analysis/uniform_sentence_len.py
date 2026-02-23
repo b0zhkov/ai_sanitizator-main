@@ -40,8 +40,9 @@ def _classify_variance(std_dev: float) -> str:
 
 
 def uniform_sentence_check(text: str) -> dict:
+    from repetition_detection import tokenize_text
     sentences = tokenize_text_into_sentences(text)
-    words_per_sentence = [len(sentence.split()) for sentence in sentences]
+    words_per_sentence = [len(tokenize_text(sentence)) for sentence in sentences]
 
     if len(words_per_sentence) <= 1:
         return _build_result(0, 'insufficient')
