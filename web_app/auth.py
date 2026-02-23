@@ -1,13 +1,13 @@
+import base64
 import hashlib
 import hmac
 import json
-import base64
+import os
 import secrets
 import time
-import os
 from typing import Optional
 
-from fastapi import Request, Depends
+from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from web_app.database import get_db

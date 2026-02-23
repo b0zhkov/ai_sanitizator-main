@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from web_app.database import Base
@@ -15,7 +15,6 @@ class User(Base):
     salt = Column(String(64), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Usage Limits
     chars_used_current_session = Column(Integer, default=0)
     rewrite_lockout_until = Column(DateTime, nullable=True)
 

@@ -1,20 +1,20 @@
 from typing import Optional
 
+from email_validator import EmailNotValidError, validate_email
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from email_validator import validate_email, EmailNotValidError
 
-from web_app.database import get_db
-from web_app.models import User
 from web_app.auth import (
+    create_token,
     generate_salt,
+    get_optional_user,
     hash_password,
     verify_password,
-    create_token,
-    get_optional_user,
 )
+from web_app.database import get_db
+from web_app.models import User
 
 
 router = APIRouter(prefix="/api", tags=["auth"])

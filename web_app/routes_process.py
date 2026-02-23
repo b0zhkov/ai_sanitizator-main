@@ -1,23 +1,22 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Depends, Request
-from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.orm import Session
 import asyncio
+import json
 import os
 import shutil
 import tempfile
-import json
 import time
 import traceback
 
-from web_app.database import get_db
-from web_app.auth import get_optional_user
-from web_app.routes_history import save_history_entry
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy.orm import Session
 
-from web_app.services.rate_limiter import check_rate_limit, update_usage, anonymous_rewrite_limiter
-from web_app.services.rewrite_pipeline import rewrite_stream_generator
-
-from changes_log import build_changes_log
 import document_loading
+from changes_log import build_changes_log
+from web_app.auth import get_optional_user
+from web_app.database import get_db
+from web_app.routes_history import save_history_entry
+from web_app.services.rate_limiter import anonymous_rewrite_limiter, check_rate_limit, update_usage
+from web_app.services.rewrite_pipeline import rewrite_stream_generator
 
 router = APIRouter()
 

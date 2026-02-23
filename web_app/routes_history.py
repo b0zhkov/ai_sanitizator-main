@@ -1,15 +1,15 @@
-from typing import Optional, List
 from datetime import datetime, timezone
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from sqlalchemy.orm import Session
 
-from web_app.database import get_db
-from web_app.models import User, HistoryEntry
 from web_app.auth import get_optional_user
+from web_app.database import get_db
+from web_app.models import HistoryEntry, User
 
 
 router = APIRouter(prefix="/api", tags=["history"])
