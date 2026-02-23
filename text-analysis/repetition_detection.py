@@ -20,13 +20,27 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 
 import _paths
 
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
+if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"):
+    _NLTK_DIR = "/tmp/nltk_data"
+    os.makedirs(_NLTK_DIR, exist_ok=True)
+    if _NLTK_DIR not in nltk.data.path:
+        nltk.data.path.append(_NLTK_DIR)
+    
     try:
-        nltk.download('punkt')
-    except Exception as e:
-        print(f"Warning: Failed to download 'punkt' tokenizer: {e}")
+        nltk.data.find('tokenizers/punkt', paths=[_NLTK_DIR])
+    except LookupError:
+        try:
+            nltk.download('punkt', download_dir=_NLTK_DIR)
+        except Exception as e:
+            print(f"Warning: Failed to download 'punkt' tokenizer to /tmp: {e}")
+else:
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except LookupError:
+        try:
+            nltk.download('punkt')
+        except Exception as e:
+            print(f"Warning: Failed to download 'punkt' tokenizer: {e}")
 
 
 def tokenize_text(text: str) -> list[str]:
