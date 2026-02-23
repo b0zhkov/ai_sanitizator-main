@@ -5,7 +5,7 @@ AI Sanitizator and Rewriter tool
 Application made for sanitizing and rewriting text.
 Currently the application supports only English language.
 It allows the users to import files (in pdf, docx, txt and html formats) or paste text directly into the application.
-Then the user can choose to either sanitiyze or sanitize and rewrite the imported text.
+Then the user can choose to either sanitize or sanitize and rewrite the imported text.
 There is a history tab which allows the user to view what they have sanitized or rewritten.
 What they see varies on whether they choose to log in or not.
 If they choose to log in, they will see at most their 50 most recent sanitizations/rewrites.
@@ -14,10 +14,10 @@ The sanitization process involves using Regex scripts to identify and remove hid
 The rewriting process is a multi-step process.
 First the cleaned text is getting analyzed behind the scenes for typical AI/SEO signals which will
 most definitely get flagged by AI detectors.
-Then a verification of those analysis is done by an AI model to confirm their truthfulness. This is the lenghtiest process but it happens in the background so the loading times can be faster. The end result of it is the AI score of the original text.
+Then a verification of those analysis is done by an AI model to confirm their truthfulness. This is the lengthiest process but it happens in the background so the loading times can be faster. The end result of it is the AI score of the original text.
 Then the process of rewriting begins. The LLM is instructed to utilize the findings and data from the analysis and to go over the text to get to know its topic, tone, theme, etc.
 This is done to make sure there are no close similarities between the original text and the rewritten text, which will get the rewritten text flagged by AI detectors.
-The end goal of the rewritten text is to utilze both longer and shorter sentences which are made up of words and phrases that are typical for human writing.
+The end goal of the rewritten text is to utilize both longer and shorter sentences which are made up of words and phrases that are typical for human writing.
 
 
 ## Getting Started
