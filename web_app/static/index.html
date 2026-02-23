@@ -42,6 +42,9 @@
 
             --navbar-bg-color: rgba(255, 255, 255, 0.05); /* white/5 */
             --navbar-border: rgba(255, 255, 255, 0.05);
+            
+            --dropdown-bg: #0f172a; /* solid slate-900 */
+            --dropdown-hover: #1e293b; /* slate-800 */
 
             --card-bg: rgba(0, 0, 0, 0.2); 
             --divider: rgba(255, 255, 255, 0.05);
@@ -93,6 +96,9 @@
 
             --navbar-bg-color: rgba(255, 255, 255, 0.6);
             --navbar-border: rgba(255, 255, 255, 0.8);
+
+            --dropdown-bg: rgba(255, 255, 255, 0.95); /* basically solid white */
+            --dropdown-hover: #f1f5f9; /* slate-100 */
 
             --card-bg: rgba(255, 255, 255, 0.5);
             --divider: rgba(0, 0, 0, 0.05);
@@ -278,6 +284,9 @@
         .text-theme-muted { color: var(--text-muted); }
         
         .bg-theme-navbar { background-color: var(--navbar-bg-color); border-color: var(--navbar-border); }
+        .bg-theme-dropdown { background-color: var(--dropdown-bg); border-color: var(--navbar-border); }
+        .hover-theme-dropdown:hover { background-color: var(--dropdown-hover); }
+        
         .icon-theme { color: var(--icon-color); }
         .icon-theme:hover { color: var(--icon-hover); }
 
@@ -527,7 +536,7 @@
 
                     <!-- Tabs: Text / Diff -->
                     <div
-                        class="flex items-center justify-between mb-4 border-b border-theme-divider pb-3 relative z-10">
+                        class="flex items-center justify-between mb-4 border-b border-theme-divider pb-3 relative z-50">
                         <div class="flex items-center gap-4">
                             <button class="text-sm font-semibold pb-1 tab-active transition-colors" id="tabText"
                                 onclick="switchTab('text')">
@@ -543,7 +552,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button
-                                class="text-xs text-blue-300 hover:text-white flex items-center gap-1 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500/20 transition-colors"
+                                class="text-xs font-medium text-white flex items-center gap-1 bg-blue-600/80 px-3 py-1.5 rounded-lg hover:bg-blue-500 transition-colors shadow-sm border border-blue-500/30"
                                 onclick="copyResult()" id="copyBtn">
                                 <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
                             </button>
@@ -551,24 +560,31 @@
                             <!-- Download Dropdown -->
                             <div class="relative group z-50">
                                 <button
-                                    class="text-xs text-emerald-300 hover:text-white flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors">
+                                    class="text-xs font-medium text-white flex items-center gap-1 bg-emerald-600/80 px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition-colors shadow-sm border border-emerald-500/30">
                                     <span class="material-symbols-outlined text-[14px]">download</span> Download
                                     <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
                                 </button>
-                                <div
-                                    class="hidden group-hover:block absolute right-0 top-full mt-1 w-32 bg-theme-navbar backdrop-blur-xl border border-theme-divider rounded-lg shadow-xl overflow-hidden animate-fade-in">
-                                    <button onclick="Export.downloadTxt(document.getElementById('finalResult').value)"
-                                        class="w-full text-left px-4 py-2 text-xs text-theme-secondary hover:text-theme-heading hover-theme-bg flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[14px]">description</span> .TXT
-                                    </button>
-                                    <button onclick="Export.downloadDocx(document.getElementById('finalResult').value)"
-                                        class="w-full text-left px-4 py-2 text-xs text-theme-secondary hover:text-theme-heading hover-theme-bg flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[14px]">article</span> .DOCX
-                                    </button>
-                                    <button onclick="Export.downloadPdf(document.getElementById('finalResult').value)"
-                                        class="w-full text-left px-4 py-2 text-xs text-theme-secondary hover:text-theme-heading hover-theme-bg flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[14px]">picture_as_pdf</span> .PDF
-                                    </button>
+                                <!-- Invisible safe hover zone wrapper -->
+                                <div class="hidden group-hover:block absolute right-0 top-full pt-1.5 w-36">
+                                    <div
+                                        class="w-full bg-theme-dropdown border border-theme-divider rounded-lg shadow-xl overflow-hidden animate-fade-in">
+                                        <button
+                                            onclick="Export.downloadTxt(document.getElementById('finalResult').value)"
+                                            class="w-full text-left px-4 py-3 text-xs text-theme-secondary hover:text-theme-heading hover-theme-dropdown flex items-center gap-2 transition-colors">
+                                            <span class="material-symbols-outlined text-[14px]">description</span> .TXT
+                                        </button>
+                                        <button
+                                            onclick="Export.downloadDocx(document.getElementById('finalResult').value)"
+                                            class="w-full text-left px-4 py-3 text-xs text-theme-secondary hover:text-theme-heading hover-theme-dropdown flex items-center gap-2 transition-colors">
+                                            <span class="material-symbols-outlined text-[14px]">article</span> .DOCX
+                                        </button>
+                                        <button
+                                            onclick="Export.downloadPdf(document.getElementById('finalResult').value)"
+                                            class="w-full text-left px-4 py-3 text-xs text-theme-secondary hover:text-theme-heading hover-theme-dropdown flex items-center gap-2 transition-colors">
+                                            <span class="material-symbols-outlined text-[14px]">picture_as_pdf</span>
+                                            .PDF
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

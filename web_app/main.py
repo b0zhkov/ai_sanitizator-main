@@ -3,7 +3,6 @@ import os
 import logging
 from contextlib import asynccontextmanager
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +46,6 @@ app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(process_router)
 
-# Mount static files
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 
 @app.get("/")
