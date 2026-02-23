@@ -11,6 +11,8 @@ which is not the case in human writing.
 So the logic here is to find small sub 40 word paragraphs and merge them with the following paragraph to
 decrease the uniformity of the text.
 """
+import os
+import csv
 import re
 import random
 from typing import List, Tuple
@@ -23,6 +25,41 @@ _PARAGRAPH_MERGE_RATE = 0.20
 _MAX_MERGE_WORDS = 150       
 _MIN_PARA_WORDS = 40         
 _SAFE_HEAD_POS = {"VERB", "ADJ", "NOUN"}
+
+_COMMON_TYPOS = {}
+_CONTRACTION_TYPOS = {}
+_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+_typos_loaded = False
+
+def _load_typos_csv():
+    global _COMMON_TYPOS, _CONTRACTION_TYPOS, _typos_loaded
+    if _typos_loaded:
+        return
+        
+    filepath = os.path.join(_DATA_DIR, "typos.csv")
+    if not os.path.exists(filepath):
+        _typos_loaded = True
+        return
+        
+    with open(filepath, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            original = row.get("Original", "").strip().lower()
+            typo = row.get("Typo", "").strip()
+            t_type = row.get("Type", "").strip().lower()
+            
+            if original and typo:
+                if t_type == "word":
+                    _COMMON_TYPOS[original] = typo
+                elif t_type == "contraction":
+                    _CONTRACTION_TYPOS[original] = typo
+                    
+    _typos_loaded = True
+
+_TYPO_RATE = 0.05
+_CONTRACTION_TYPO_RATE = 0.15
+_AMPERSAND_RATE = 0.25
+_DOUBLE_SPACE_RATE = 0.40
 
 def _get_nlp():
     return shared_nlp.get_nlp_light()
@@ -96,12 +133,58 @@ def _vary_paragraphs(text: str) -> str:
     return '\n\n'.join(merged_paragraphs)
 
 
+def _fuzz_spelling(text: str) -> str:
+    words = text.split(' ')
+    result = []
+    for w in words:
+        clean_w = w.strip(".,!?\"';:()")
+        if not clean_w:
+            result.append(w)
+            continue
+            
+        w_lower = clean_w.lower()
+        if w_lower in _COMMON_TYPOS and random.random() < _TYPO_RATE:
+            new_w = _COMMON_TYPOS[w_lower]
+            if clean_w[0].isupper():
+                new_w = new_w.capitalize()
+            w = w.replace(clean_w, new_w)
+        elif w_lower in _CONTRACTION_TYPOS and random.random() < _CONTRACTION_TYPO_RATE:
+            new_w = _CONTRACTION_TYPOS[w_lower]
+            if clean_w[0].isupper():
+                new_w = new_w.capitalize()
+            w = w.replace(clean_w, new_w)
+            
+        result.append(w)
+    return ' '.join(result)
+
+
+def _inject_typographical_quirks(text: str) -> str:
+    # Ampersand swaps
+    words = text.split(' ')
+    result = []
+    for w in words:
+        if w.lower() == "and" and random.random() < _AMPERSAND_RATE:
+            result.append("&")
+        else:
+            result.append(w)
+    text = ' '.join(result)
+    
+    # Double space after periods (simulate human typing habits)
+    if random.random() < _DOUBLE_SPACE_RATE:
+        text = re.sub(r'([.!?])\s+(?=[A-Z])', r'\1  ', text)
+        
+    return text
+
+
 def inject_imperfections(text: str) -> str:
     if not text:
         return text
         
-    text = _remove_optional_that(text)
+    _load_typos_csv()
     
+    text = _remove_optional_that(text)
     text = _vary_paragraphs(text)
+    text = _fuzz_spelling(text)
+    text = _inject_typographical_quirks(text)
     
     return text
