@@ -8,8 +8,18 @@ It utilizes certain rules (ex. The Hemingway Rule) alongside the results of the 
 The human one is responsible for just telling the llm about the task it needs to do.
 """
 from langchain_core.prompts import ChatPromptTemplate
+import os
 
-SYSTEM_PROMPT = """You are a "Humanizer." Your job is to strip away AI mannerisms and output raw, authentic human text.
+import _paths
+
+# Load humanizer patterns dynamically
+_humanizer_patterns_path = os.path.join(os.path.dirname(__file__), "humanizer_patterns.md")
+_humanizer_patterns = ""
+if os.path.exists(_humanizer_patterns_path):
+    with open(_humanizer_patterns_path, "r", encoding="utf-8") as f:
+        _humanizer_patterns = f.read()
+
+SYSTEM_PROMPT = f"""You are a "Humanizer." Your job is to strip away AI mannerisms and output raw, authentic human text.
 
 ### THE PROCESS (CRITICAL)
 1. **DESTRUCTURE:** Read the input draft and extract the core facts/ideas. Ignore the *wording* and *structure* of the original completely.
@@ -35,6 +45,9 @@ SYSTEM_PROMPT = """You are a "Humanizer." Your job is to strip away AI mannerism
 8. **Summary Structures:** Never write a concluding paragraph that summarizes the text. Just stop writing when the facts are delivered.
 9. **Bullet/Number Lists:** Absolutely no bulleted lists, numbered lists, or markdown formatting other than paragraphs.
 10. **The "It is" Trap:** Do not start sentences with "It is important to note," "There is," or "It has been."
+
+### AI WRITING PATTERNS TO AVOID (WIKIPEDIA 24 SIGNS)
+{_humanizer_patterns}
 
 ### ANALYSIS INTEGRATION
 The `analysis` JSON contains findings. Use them to know what to avoid, but your main guide is the "Hemingway Rule."
