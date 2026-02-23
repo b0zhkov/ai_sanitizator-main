@@ -43,6 +43,10 @@ _MIN_SPLIT_CHARS = 60
 _SHORT_SENTENCE_WORDS = 8
 _MIN_WORDS_PER_SIDE = 3
 
+_DASH_PUNCT_RE = re.compile(r'\s+[-–—]\s*([.!?])')
+_DASH_END_RE = re.compile(r'\s+[-–—]\s*$', re.MULTILINE)
+_DASH_HYPHEN_RE = re.compile(r'(\w)\s+-\s+(\w)')
+
 def _lowercase_first_if_safe(text: str) -> str:
     if not text:
         return text
@@ -107,7 +111,7 @@ def _split_long_sentence(sentence: str) -> str:
 
 
 def _merge_short_sentences(sentences: List[str]) -> List[str]:
-    if len(sentences) < 3:
+    if len(sentences) < 2:
         return sentences
 
     result: List[str] = []
@@ -178,7 +182,7 @@ def _diversify_punctuation(sentence: str) -> str:
         return sentence
 
     valid_indices = [
-        idx for idx in range(1, len(parts) - 1)
+        idx for idx in range(1, len(parts))
         if _has_min_words(", ".join(parts[:idx]))
         and _has_min_words(", ".join(parts[idx:]))
     ]
@@ -199,10 +203,9 @@ def _diversify_punctuation(sentence: str) -> str:
 
 
 def _fix_stray_dashes(text: str) -> str:
-
-    text = re.sub(r'\s+[-–—]\s*([.!?])', r'\1', text)
-    text = re.sub(r'\s+[-–—]\s*$', '', text, flags=re.MULTILINE)
-    text = re.sub(r'(\w)\s+-\s+(\w)', r'\1, \2', text)
+    text = _DASH_PUNCT_RE.sub(r'\1', text)
+    text = _DASH_END_RE.sub('', text)
+    text = _DASH_HYPHEN_RE.sub(r'\1, \2', text)
     return text
 
 
