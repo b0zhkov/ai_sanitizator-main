@@ -25,15 +25,13 @@ import re
 import os
 import csv
 import random
-from typing import List, Dict, Callable
+from typing import List, Dict
 from structure_breaker import break_structure
 from perplexity_enhancer import enhance_perplexity
 from imperfection_injector import inject_imperfections
 import shared_utils
 
-
-
-
+#dict containing the preset probabilities for the different humanization strengths
 STRENGTH_PRESETS = {
     "light":      {"vocab": 0.40, "transition_drop": 0.15, "transition_replace": 0.20, "conjunction": 0.05},
     "medium":     {"vocab": 0.85, "transition_drop": 0.30, "transition_replace": 0.40, "conjunction": 0.12},
@@ -46,6 +44,13 @@ _contraction_pairs: Dict[str, str] = {}
 _transition_alternatives: Dict[str, List[str]] = {}
 _vocabulary_swaps: Dict[str, str] = {}
 _data_loaded = False
+
+_contraction_pattern = None
+_contraction_lookup = None
+_transition_pattern = None
+_transition_lookup = None
+_vocab_pattern = None
+_vocab_lookup = None
 
 
 def _load_csv_data() -> None:
@@ -91,10 +96,6 @@ def _load_transition_csv(filename: str) -> Dict[str, List[str]]:
 
     return result
 
-
-
-
-
 def _lowercase_first(text: str) -> str:
     if not text:
         return text
@@ -102,24 +103,24 @@ def _lowercase_first(text: str) -> str:
 
 
 def _enforce_contractions(text: str) -> str:
+    global _contraction_pattern, _contraction_lookup
     if not _contraction_pairs:
         return text
         
-    lookup = {k.lower(): v for k, v in _contraction_pairs.items()}
-    keys = list(_contraction_pairs.keys())
-    pattern = shared_utils.build_optimized_regex(keys)
+    if _contraction_pattern is None:
+        _contraction_lookup = {k.lower(): v for k, v in _contraction_pairs.items()}
+        _contraction_pattern = shared_utils.build_optimized_regex(list(_contraction_pairs.keys()))
     
     def replacer(match):
         key = match.group(0).lower()
-        if key not in lookup:
+        if key not in _contraction_lookup:
             return match.group(0)
-        return shared_utils.preserve_case(match.group(0), lookup[key])
+        return shared_utils.preserve_case(match.group(0), _contraction_lookup[key])
         
-    return pattern.sub(replacer, text)
+    return _contraction_pattern.sub(replacer, text)
 
 
 def _fuzz_single_transition_optimized(sentence: str, pattern: re.Pattern, lookup: Dict[str, List[str]], drop_rate: float, replace_rate: float) -> str:
-    # Only attempt replacements on transitions that start the sentence
     match = pattern.match(sentence)
     if not match:
         return sentence
@@ -147,25 +148,23 @@ def _fuzz_single_transition_optimized(sentence: str, pattern: re.Pattern, lookup
 
 
 def _fuzz_transitions(text: str, drop_rate: float, replace_rate: float) -> str:
+    global _transition_pattern, _transition_lookup
     if not _transition_alternatives:
         return text
 
-    # Build optimized pattern for transitions
-    # Transitions are phrase starts.
-    keys = list(_transition_alternatives.keys())
-    sorted_keys = sorted(keys, key=len, reverse=True)
-    pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
-    # Match at start of string
-    pattern = re.compile(r'^(' + pattern_str + r')\b', re.IGNORECASE)
-    
-    lookup = {k.lower(): v for k, v in _transition_alternatives.items()}
+    if _transition_pattern is None:
+        _transition_lookup = {k.lower(): v for k, v in _transition_alternatives.items()}
+        keys = list(_transition_alternatives.keys())
+        sorted_keys = sorted(keys, key=len, reverse=True)
+        pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
+        _transition_pattern = re.compile(r'^(' + pattern_str + r')(?=\s|$)', re.IGNORECASE)
 
     paragraphs = text.split('\n\n')
     result = []
 
     for paragraph in paragraphs:
         sentences = shared_utils.split_sentences(paragraph)
-        fuzzed = [_fuzz_single_transition_optimized(s, pattern, lookup, drop_rate, replace_rate) for s in sentences]
+        fuzzed = [_fuzz_single_transition_optimized(s, _transition_pattern, _transition_lookup, drop_rate, replace_rate) for s in sentences]
         result.append(' '.join(fuzzed))
 
     return '\n\n'.join(result)
@@ -211,30 +210,32 @@ def _inject_conjunctions(text: str, rate: float) -> str:
 
 
 def _downgrade_vocabulary(text: str, rate: float) -> str:
+
+    global _vocab_pattern, _vocab_lookup
     if not _vocabulary_swaps:
         return text
         
-    lookup = {k.lower(): v for k, v in _vocabulary_swaps.items()}
-    keys = list(_vocabulary_swaps.keys())
-    pattern = shared_utils.build_optimized_regex(keys)
+    if _vocab_pattern is None:
+        _vocab_lookup = {k.lower(): v for k, v in _vocabulary_swaps.items()}
+        _vocab_pattern = shared_utils.build_optimized_regex(list(_vocabulary_swaps.keys()))
     
     def replacer(match):
         if random.random() >= rate:
             return match.group(0)
             
         key = match.group(0).lower()
-        if key not in lookup:
+        if key not in _vocab_lookup:
             return match.group(0)
-        return shared_utils.preserve_case(match.group(0), lookup[key])
+        return shared_utils.preserve_case(match.group(0), _vocab_lookup[key])
 
-    return pattern.sub(replacer, text)
+    return _vocab_pattern.sub(replacer, text)
 
 
 def humanize(text: str, strength: str = "medium") -> str:
+
     if not text or not text.strip():
         return text
 
-    # Load config based on strength
     preset = STRENGTH_PRESETS.get(strength, STRENGTH_PRESETS["medium"])
     config = {
         "vocab_rate": preset["vocab"],
