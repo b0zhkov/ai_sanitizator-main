@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
-import document_loading
-from changes_log import build_changes_log
+from text_sanitization import document_loading
+from text_sanitization.changes_log import build_changes_log
 from web_app.auth import get_optional_user
 from web_app.database import get_db
 from web_app.routes_history import save_history_entry
