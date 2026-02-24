@@ -20,7 +20,7 @@ def get_llm():
             model="@cf/meta/llama-3.3-70b-instruct-fp8-fast",
             temperature=0.8,
             top_p=0.95,
-            max_tokens=4096
+            max_tokens=8192
         )
     return _llm
 
