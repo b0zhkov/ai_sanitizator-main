@@ -8,6 +8,7 @@ __pycache__/
 env/
 venv/
 .venv/
+stable_venv/
 .ENV
 .ENV.local
 .python-version
@@ -32,6 +33,10 @@ build/
 # Logs
 *.log
 *.out
+
+# Databases
+*.db
+*.sqlite3
 
 # OS generated files
 .DS_Store
