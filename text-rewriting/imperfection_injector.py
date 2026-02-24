@@ -3,13 +3,8 @@ This file is responsible for injecting imperfections into the text.
 That is important because the LLM always tries to make the text sound too perfect and textbook-like.
 But this gets flagged by the detectors.
 
-The imperfections the file handles are the occasional removal (50%) of "that" when it is appropriate.
-Appropriate meaning when "that" is used as a conjunction rather than a pronoun.
-
-The other imperfection is regarding paragraphs since they also like the sentences have uniformal length,
-which is not the case in human writing.
-So the logic here is to find small sub 40 word paragraphs and merge them with the following paragraph to
-decrease the uniformity of the text.
+This script injects occasional typos from `typos.csv` as well as typographical quirks
+like double spaces after periods or substituting 'and' with '&'.
 """
 import os
 import csv
@@ -18,13 +13,6 @@ import random
 from typing import List, Tuple
 
 import _paths  # noqa: E402 — centralised path setup
-import shared_nlp
-
-_THAT_DROP_RATE = 0.50       
-_PARAGRAPH_MERGE_RATE = 0.20 
-_MAX_MERGE_WORDS = 150       
-_MIN_PARA_WORDS = 40         
-_SAFE_HEAD_POS = {"VERB", "ADJ", "NOUN"}
 
 _COMMON_TYPOS = {}
 _CONTRACTION_TYPOS = {}
@@ -61,106 +49,34 @@ _CONTRACTION_TYPO_RATE = 0.15
 _AMPERSAND_RATE = 0.25
 _DOUBLE_SPACE_RATE = 0.40
 
-def _get_nlp():
-    return shared_nlp.get_nlp_light()
-
-
 def _cleanup_spaces(text: str) -> str:
     return re.sub(r'[ \t]+', ' ', text)
 
 
-def _remove_optional_that(text: str) -> str:
-    nlp = _get_nlp()
-    if nlp is None:
-        return text
-
-    doc = nlp(text)
-    
-    removals: List[Tuple[int, int]] = []
-    
-    for token in doc:
-        if token.text.lower() == "that":
-            
-            if (token.dep_ == "mark" and
-                token.head.dep_ == "ccomp" and
-                token.head.head.pos_ in _SAFE_HEAD_POS):
-                
-                if random.random() < _THAT_DROP_RATE:
-                    if token.whitespace_:
-                         removals.append((token.idx, token.idx + len(token.text_with_ws)))
-                    else:
-                         removals.append((token.idx, token.idx + len(token.text)))
-
-    if not removals:
-        return text
-
-    removals.sort(key=lambda x: x[0], reverse=True)
-    
-    for start, end in removals:
-        text = text[:start] + text[end:]
-        
-    return _cleanup_spaces(text)
-
-
-def _vary_paragraphs(text: str) -> str:
-    paragraphs = text.split('\n\n')
-    if len(paragraphs) <= 1:
-        return text
-        
-    merged_paragraphs = []
-    i = 0
-    while i < len(paragraphs):
-        current_para = paragraphs[i]
-        
-        if i < len(paragraphs) - 1:
-            next_para = paragraphs[i+1]
-            
-            len_curr = len(current_para.split())
-            len_next = len(next_para.split())
-            
-            if (len_curr < _MIN_PARA_WORDS and 
-                len_next < _MIN_PARA_WORDS and 
-                (len_curr + len_next) < _MAX_MERGE_WORDS and
-                random.random() < _PARAGRAPH_MERGE_RATE):
-                
-                merged_paragraphs.append(current_para + " " + next_para)
-                i += 2 
-                continue
-        
-        merged_paragraphs.append(current_para)
-        i += 1
-        
-    return '\n\n'.join(merged_paragraphs)
-
-
 def _fuzz_spelling(text: str) -> str:
-    nlp = _get_nlp()
-    if nlp is None:
-        return text
-    
-    doc = nlp(text)
+    # Instead of spacy tokenization, we do a simple regex word split
+    # to maintain speed and drop the heavy dependency.
+    words = re.split(r'(\s+|[.,;!?])', text)
     result = []
     
-    for token in doc:
-        if token.is_punct or token.is_space:
-            result.append(token.text_with_ws)
+    for w in words:
+        if not w or w.isspace() or re.match(r'[.,;!?]', w):
+            result.append(w)
             continue
             
-        clean_w = token.text
-        w_lower = clean_w.lower()
-        new_w = clean_w
+        w_lower = w.lower()
+        new_w = w
         
         if w_lower in _COMMON_TYPOS and random.random() < _TYPO_RATE:
             new_w = _COMMON_TYPOS[w_lower]
-            if clean_w[0].isupper():
+            if w[0].isupper():
                 new_w = new_w.capitalize()
         elif w_lower in _CONTRACTION_TYPOS and random.random() < _CONTRACTION_TYPO_RATE:
             new_w = _CONTRACTION_TYPOS[w_lower]
-            if clean_w[0].isupper():
+            if w[0].isupper():
                 new_w = new_w.capitalize()
                 
-        # Append modified word along with original whitespace
-        result.append(new_w + token.whitespace_)
+        result.append(new_w)
         
     return "".join(result)
 
@@ -189,8 +105,6 @@ def inject_imperfections(text: str) -> str:
         
     _load_typos_csv()
     
-    text = _remove_optional_that(text)
-    text = _vary_paragraphs(text)
     text = _fuzz_spelling(text)
     text = _inject_typographical_quirks(text)
     
