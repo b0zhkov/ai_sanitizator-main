@@ -15,8 +15,8 @@ sys.path.insert(0, _project_root)
 
 import _paths
 try:
-    import document_loading
-    from changes_log import build_changes_log
+    from text_sanitization.document_loading import document_loading
+    from text_sanitization.changes_log import build_changes_log
 except ImportError as e:
     logging.error(f"Error importing core text processing modules: {e}")
     raise e

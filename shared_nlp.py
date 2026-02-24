@@ -46,3 +46,11 @@ def get_nlp_light():
             spacy.cli.download("en_core_web_sm")
             _nlp_light = spacy.load("en_core_web_sm", disable=["ner", "lemmatizer", "textcat", "entity_linker"])
     return _nlp_light
+
+
+def clear_nlp_models():
+    """Clears all loaded NLP models from memory."""
+    global _nlp_full, _nlp_light, _nlp_tagger
+    _nlp_full = None
+    _nlp_light = None
+    _nlp_tagger = None

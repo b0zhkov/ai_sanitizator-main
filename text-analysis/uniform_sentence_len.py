@@ -10,8 +10,8 @@ from repetition_detection import tokenize_text_into_sentences
 
 __all__ = ['uniform_sentence_check']
 
-LOW_VARIANCE_THRESHOLD = 3.0
-HIGH_VARIANCE_THRESHOLD = 6.5
+LOW_CV_THRESHOLD = 0.20
+MODERATE_CV_THRESHOLD = 0.45
 
 RESULT_TEMPLATES = {
     'insufficient': ('Insufficient amount of sentences to run a test.', 'Neutral', 'white'),
@@ -31,10 +31,10 @@ def _build_result(score: float, template_key: str) -> dict:
     }
 
 
-def _classify_variance(std_dev: float) -> str:
-    if std_dev < LOW_VARIANCE_THRESHOLD:
+def _classify_variance(cv: float) -> str:
+    if cv < LOW_CV_THRESHOLD:
         return 'uniform'
-    elif std_dev < HIGH_VARIANCE_THRESHOLD:
+    elif cv < MODERATE_CV_THRESHOLD:
         return 'moderate'
     return 'burstive'
 
@@ -59,9 +59,9 @@ def uniform_sentence_check(text: str) -> dict:
     
     # Update thresholds based on CV: 
     # uniform < 0.2, moderate < 0.45, burstive > 0.45
-    if cv < 0.20:
+    if cv < LOW_CV_THRESHOLD:
         category = 'uniform'
-    elif cv < 0.45:
+    elif cv < MODERATE_CV_THRESHOLD:
         category = 'moderate'
     else:
         category = 'burstive'
