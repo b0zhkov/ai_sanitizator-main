@@ -44,4 +44,3 @@ def validate_and_fix_encoding(text: str) -> str:
             continue
             
     return text
-

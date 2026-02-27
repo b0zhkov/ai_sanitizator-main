@@ -1,3 +1,9 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "python.defaultInterpreterPath": "${workspaceFolder}/stable_venv/bin/python",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/text-analysis",
+        "${workspaceFolder}/text-rewriting",
+        "${workspaceFolder}/text_sanitization"
+    ]
 }
