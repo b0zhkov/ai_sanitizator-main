@@ -14,7 +14,6 @@ _nlp_tagger = None
 
 
 def get_nlp_full():
-    """Returns a full en_core_web_sm model (all components enabled)."""
     global _nlp_full
     if _nlp_full is None:
         try:
@@ -25,7 +24,6 @@ def get_nlp_full():
     return _nlp_full
 
 def get_nlp_tagger():
-    """Returns a model with NER, textcat, entity_linker disabled, but keeps tagger and lemmatizer."""
     global _nlp_tagger
     if _nlp_tagger is None:
         try:

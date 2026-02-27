@@ -54,8 +54,7 @@ def _cleanup_spaces(text: str) -> str:
 
 
 def _fuzz_spelling(text: str) -> str:
-    # Instead of spacy tokenization, we do a simple regex word split
-    # to maintain speed and drop the heavy dependency.
+    
     words = re.split(r'(\s+|[.,;!?])', text)
     result = []
     
@@ -91,8 +90,7 @@ def _inject_typographical_quirks(text: str) -> str:
         else:
             result.append(w)
     text = ' '.join(result)
-    
-    # Double space after periods (simulate human typing habits)
+
     if random.random() < _DOUBLE_SPACE_RATE:
         text = re.sub(r'([.!?])\s+(?=[A-Z])', r'\1  ', text)
         

@@ -36,7 +36,6 @@ def apply_regex_changes(text, regex_patterns):
 def build_changes_log(text):
     changes = []
     
-    # Define the sequence of transformations
     transformations = [
         ("Stripped HTML Tags", html_cleaner.clean_html),
         ("Stripped Markdown Syntax", markdown_stripper.strip_markdown),
@@ -54,11 +53,9 @@ def build_changes_log(text):
             ))
             text = new_text
 
-    # Apply the first set of regex patterns
     regex_changes, text = apply_regex_changes(text, strip_inv_chars.PATTERNS)
     changes.extend(regex_changes)
     
-    # Continued transformations
     post_regex_transformations = [
         ("Redacted PII (Emails, URLs, IPs)", pii_redactor.redact_pii),
         ("Removed Emojis", emoji_cleaner.remove_emojis),
@@ -76,9 +73,7 @@ def build_changes_log(text):
             ))
             text = new_text
 
-    # Apply final regex patterns
     regex_changes, text = apply_regex_changes(text, normalizator.PATTERNS)
     changes.extend(regex_changes)
     
     return text, changes
-
