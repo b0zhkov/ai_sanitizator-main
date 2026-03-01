@@ -26,6 +26,7 @@ import punctuation_checker
 import ai_phrase_detector
 import llm_info
 
+# cap the text we send to the LLM to stay within the context window
 _MAX_LLM_INPUT_CHARS = 4000
 
 
@@ -56,6 +57,7 @@ def verify_metrics_only(text: str) -> dict:
         "llm_critique": None
     }
 
+# wraps each analyzer so one failing module doesn't crash the whole pipeline
 def _safe_analyze(fn):
     def wrapper(*args, **kwargs):
         try:
@@ -93,6 +95,7 @@ def _analyze_verb_frequency(text: str) -> dict:
 def _analyze_punctuation(text: str) -> dict:
     return punctuation_checker.analyze_punctuation_structure(text)
 
+# cached so the CSV is only read and compiled into regex once
 _excess_words_patterns = None
 
 @_safe_analyze
@@ -108,6 +111,7 @@ def _check_excess_words(text: str) -> dict:
             for row in reader:
                 word = row.get('word', '').strip().lower()
                 if word:
+                    # word-boundary anchors prevent partial matches (e.g. "the" inside "other")
                     pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
                     _excess_words_patterns.append((word, pattern))
         
@@ -125,6 +129,7 @@ def _analyze_ai_phrases(text: str) -> dict:
 
 
 def get_llm_critique(text: str, stats: dict) -> dict:
+    # LangChain chain: prompt → LLM → JSON parser, enforces the CritiqueSchema
     parser = JsonOutputParser(pydantic_object=CritiqueSchema)
     
     prompt = ChatPromptTemplate.from_messages([

@@ -35,6 +35,7 @@ def validate_and_fix_encoding(text: str) -> str:
     if not text:
         return ""
 
+    # try common Windows codepages — if re-encoding produces shorter text, the original had junk bytes
     for encoding in ('cp1252', 'cp1251'):
         try:
             fixed = text.encode(encoding).decode('utf-8')

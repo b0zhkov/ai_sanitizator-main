@@ -48,7 +48,7 @@ class IPRateLimiter:
     def __init__(self, max_requests: int = 5, window_seconds: int = 60, max_entries: int = 1000):
         self.max_requests = max_requests
         self.window = window_seconds
-        self.max_entries = max_entries
+        self.max_entries = max_entries  # safety cap to prevent unbounded memory growth
         self._hits: dict[str, list[float]] = defaultdict(list)
     
     def check(self, request: Request) -> tuple[bool, str | None]:
@@ -63,7 +63,7 @@ class IPRateLimiter:
         if len(self._hits) > self.max_entries:
             self._prune_all(now)
             
-        # Prune old entries for this specific IP
+        # sliding window: drop timestamps older than the window for this IP
         self._hits[ip] = [t for t in self._hits[ip] if now - t < self.window]
         
         if len(self._hits[ip]) >= self.max_requests:

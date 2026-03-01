@@ -16,6 +16,7 @@ def redact_pii(text: str) -> str:
     if not text:
         return ""
         
+    # spacy's built-in token attributes handle emails and URLs out of the box
     nlp = shared_nlp.get_nlp_light()
     doc = nlp(text)
     
@@ -33,6 +34,7 @@ def redact_pii(text: str) -> str:
     def replace_ip(match):
         ip_str = match.group(0)
         try:
+            # inet_aton validates it's actually an IP, not just four numbers with dots
             socket.inet_aton(ip_str)
             return "[IP]"
         except socket.error:

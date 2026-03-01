@@ -18,12 +18,13 @@ def get_llm():
             account_id=os.getenv("CF_ACCOUNT_ID"),
             api_token=os.getenv("CF_AI_API_KEY"),
             model="@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-            temperature=0.8,
-            top_p=0.95,
+            temperature=0.8,   # high creativity — we want varied, human-like output
+            top_p=0.95,        # keep nearly all token candidates in play
             max_tokens=8192
         )
     return _llm
 
+# module-level __getattr__ lets other files do `llm_info.llm` without calling get_llm()
 def __getattr__(name):
     if name == "llm":
         return get_llm()

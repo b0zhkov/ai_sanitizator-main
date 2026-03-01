@@ -36,6 +36,7 @@ def analyze_verb_frequency(text: str) -> Dict[str, Any]:
     for token in doc:
         if token.pos_ == "VERB":
             total_verbs += 1
+            # compare lemma ("delving" → "delve") so conjugated forms still get caught
             lemma = token.lemma_.lower()
             
             if lemma in AI_FAVORED_VERBS:

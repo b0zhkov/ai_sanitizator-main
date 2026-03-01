@@ -51,10 +51,12 @@ async def rewrite_stream_generator(
     print(f"[TIMING] Stats collection took: {time.time() - t1:.2f}s")
 
     # 2. Critique (Async Task)
+    # fire off the LLM critique in parallel — it runs while the rewrite streams
     critique_task = asyncio.create_task(
         asyncio.to_thread(llm_validator.get_llm_critique, clean_text_val, stats)
     )
 
+    # give the rewriter the stats but don't wait for the critique (it'll arrive later)
     analysis_for_rewrite = {"statistical_metrics": stats, "llm_critique": None}
     
     yield json.dumps({
@@ -112,16 +114,8 @@ async def rewrite_stream_generator(
     # 6. History Saving
     if user:
         save_history_entry(
-            db, user.id, "rewrite", request_text=raw_text, result_text=rewritten_text_final
+            db, user.id, "rewrite", raw_text, rewritten_text_final
         )
-        # Note: 'request_text' argument name in save_history_entry might be 'text'.
-        # Checking logic calls: save_history_entry(db, user.id, "rewrite", text, rewritten_text_final)
-        # The original code passed 'text' (the original input). 
-        # Here I passed 'clean_text_val'. Let me check the original code again.
-        # Line 197: save_history_entry(db, user.id, "rewrite", text, rewritten_text_final)
-        # It used 'text' (the raw input). 
-        # I need to pass 'text' (raw input) to this function or handle it.
-        # I should add 'raw_text' as argument to this function.
 
     yield json.dumps({
         "type": "done",
@@ -133,6 +127,7 @@ async def rewrite_stream_generator(
         }
     }) + "\n"
 
+    # the critique task was running in the background this whole time — now we collect it
     t5 = time.time()
     try:
         llm_critique = await critique_task

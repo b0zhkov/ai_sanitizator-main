@@ -14,6 +14,7 @@ from web_app.models import HistoryEntry, User
 
 router = APIRouter(prefix="/api", tags=["history"])
 
+# cap per user — oldest entries get deleted when this is exceeded
 MAX_HISTORY_PER_USER = 50
 
 
@@ -39,6 +40,7 @@ def _enforce_history_limit(db: Session, user_id: int):
         .all()
     )
 
+    # FIFO eviction: delete the oldest entries that push us over the limit
     id_list = [e_id for (e_id,) in oldest_ids]
     if id_list:
         db.query(HistoryEntry).filter(HistoryEntry.id.in_(id_list)).delete(synchronize_session='fetch')

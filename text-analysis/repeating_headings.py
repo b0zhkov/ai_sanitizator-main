@@ -25,6 +25,7 @@ def is_heading(line: str) -> bool:
 
     line = line.strip()
     
+    # heuristic: headings are short, capitalized, and don't end with a period
     if not line or len(line) >= 100 or not line[0].isupper() or line.endswith('.'):
         return False
     
@@ -47,6 +48,7 @@ def get_repeating_headings(text: str) -> list[str]:
             normalized = line.lower()
             
             if normalized in seen_headings:
+                # avoid adding the same heading to the result list twice
                 if normalized not in [h.lower() for h in repeated_headings]:
                     repeated_headings.append(line)
             else:

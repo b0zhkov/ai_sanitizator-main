@@ -8,6 +8,7 @@ This avoids loading the same ~50MB model multiple times into memory.
 import spacy
 import spacy.cli
 
+# singletons — each variant loads the model once and reuses it everywhere
 _nlp_full = None
 _nlp_light = None
 _nlp_tagger = None
@@ -24,6 +25,7 @@ def get_nlp_full():
     return _nlp_full
 
 def get_nlp_tagger():
+    """Keeps POS tagging + dependency parsing, drops NER and classification."""
     global _nlp_tagger
     if _nlp_tagger is None:
         try:

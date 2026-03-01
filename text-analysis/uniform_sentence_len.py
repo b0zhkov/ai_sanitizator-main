@@ -10,8 +10,9 @@ from repetition_detection import tokenize_text_into_sentences
 
 __all__ = ['uniform_sentence_check']
 
-LOW_CV_THRESHOLD = 0.20
-MODERATE_CV_THRESHOLD = 0.45
+# coefficient of variation thresholds for sentence-length uniformity
+LOW_CV_THRESHOLD = 0.20    # below this = suspiciously uniform (AI-like)
+MODERATE_CV_THRESHOLD = 0.45  # above this = natural burstiness (human-like)
 
 RESULT_TEMPLATES = {
     'insufficient': ('Insufficient amount of sentences to run a test.', 'Neutral', 'white'),
@@ -55,6 +56,7 @@ def uniform_sentence_check(text: str) -> dict:
     else:
         std_dev = statistics.stdev(words_per_sentence)
     
+    # CV (coefficient of variation) = how much sentence lengths vary relative to the mean
     cv = (std_dev / mean_length) if mean_length > 0 else 0.0
     
     # Update thresholds based on CV: 

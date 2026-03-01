@@ -11,6 +11,7 @@ import _paths  # noqa: E402 — centralised path setup
 from text_sanitization.changes_log import build_changes_log
 from text_sanitization.document_loading import load_file_content
 
+# simple in-memory cache so the same raw text doesn't get sanitized twice
 _processed_text_cache = {}
 
 def get_clean_text_from_file(file_path: str) -> str:

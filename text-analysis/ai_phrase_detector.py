@@ -26,6 +26,7 @@ def _initialize_matcher():
         return
 
     _nlp = shared_nlp.get_nlp_light()
+    # attr="LOWER" makes matching case-insensitive
     _matcher = PhraseMatcher(_nlp.vocab, attr="LOWER")
 
     csv_path = os.path.join(os.path.dirname(__file__), 'ai_phrases.csv')
@@ -38,6 +39,7 @@ def _initialize_matcher():
                 if phrase:
                     phrases.append(phrase)
     
+    # convert raw strings into spacy Docs so PhraseMatcher can use them
     patterns = [_nlp.make_doc(text) for text in phrases]
     _matcher.add("AI_PHRASE", patterns)
 
@@ -50,6 +52,7 @@ def analyze_ai_phrases(text):
         
         found_phrases = []
         for match_id, start, end in matches:
+            # start/end are token indices, not character offsets
             found_phrases.append(doc[start:end].text.lower())
             
         return {

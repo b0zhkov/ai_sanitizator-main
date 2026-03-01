@@ -45,6 +45,7 @@ def _initialize_spacy():
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
+            # only grab "style" type words — other types aren't filler
             if row.get('type') == 'style' and row.get('word'):
                 style_words.append(row['word'].strip())
 
@@ -59,6 +60,7 @@ def analyze_and_filter_out(text: str):
     doc = nlp(text)
     matches = matcher(doc)
     
+    # track token indices to remove, not the text itself
     to_remove = set()
     found_words = []
 
@@ -67,9 +69,11 @@ def analyze_and_filter_out(text: str):
         for i in range(start, end):
             to_remove.add(i)
 
+    # rebuild text skipping matched filler tokens, preserving original whitespace
     cleaned_tokens = [token.text_with_ws for token in doc if token.i not in to_remove]
     cleaned_text = "".join(cleaned_tokens).strip()
 
+    # density = percentage of tokens that are filler
     filler_token_count = sum(end - start for _, start, end in matches)
     filler_density = (filler_token_count / len(doc)) * 100 if len(doc) > 0 else 0
 

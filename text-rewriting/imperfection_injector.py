@@ -44,17 +44,18 @@ def _load_typos_csv():
                     
     _typos_loaded = True
 
-_TYPO_RATE = 0.05
-_CONTRACTION_TYPO_RATE = 0.15
-_AMPERSAND_RATE = 0.25
-_DOUBLE_SPACE_RATE = 0.40
+# probability rates for each type of imperfection — tuned to feel subtle
+_TYPO_RATE = 0.05              # rare typos, just enough to be believable
+_CONTRACTION_TYPO_RATE = 0.15  # contraction errors are more common in real typing
+_AMPERSAND_RATE = 0.25         # "and" → "&" swap
+_DOUBLE_SPACE_RATE = 0.40      # old-school double space after sentence endings
 
 def _cleanup_spaces(text: str) -> str:
     return re.sub(r'[ \t]+', ' ', text)
 
 
 def _fuzz_spelling(text: str) -> str:
-    
+    # split on whitespace and punctuation but keep delimiters in the list
     words = re.split(r'(\s+|[.,;!?])', text)
     result = []
     
@@ -91,6 +92,7 @@ def _inject_typographical_quirks(text: str) -> str:
             result.append(w)
     text = ' '.join(result)
 
+    # add double space after sentence-ending punctuation before a capital letter
     if random.random() < _DOUBLE_SPACE_RATE:
         text = re.sub(r'([.!?])\s+(?=[A-Z])', r'\1  ', text)
         

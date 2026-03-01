@@ -30,6 +30,7 @@ async def process_text(
 ):
     try:
 
+        # offload to a thread — build_changes_log is CPU-bound and would block the event loop
         clean_text_val, changes = await asyncio.to_thread(build_changes_log, text)
         
         changes_list = [
@@ -70,6 +71,7 @@ async def process_text(
                          yield json.dumps({"type": "error", "data": error_msg}) + "\n"
                     return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
+            # SSE-style streaming — chunks arrive as newline-delimited JSON
             return StreamingResponse(
                 rewrite_stream_generator(text, clean_text_val, request, db, user, changes_list, t0, strength),
                 media_type="application/x-ndjson"

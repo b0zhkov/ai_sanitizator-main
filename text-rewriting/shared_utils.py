@@ -1,8 +1,11 @@
 import re
 from typing import List
 
+# splits on sentence-ending punctuation followed by whitespace
+# negative lookbehinds prevent splitting on abbreviations like "Dr." or "Mr."
 _SENTENCE_BOUNDARY = re.compile(r'(?<!\bDr)(?<!\bMr)(?<!\bMs)(?<!\bMrs)(?<!\bvs)(?<!\bSt)(?<=[.!?])\s+')
 
+# words that stay lowercase even at the start of a sentence when preserving case
 LOWERABLE_STARTERS = frozenset({
     "the", "a", "an", "this", "that", "these", "those",
     "it", "its", "they", "their", "we", "our", "my",
@@ -31,6 +34,7 @@ def preserve_case(original: str, replacement: str) -> str:
     return replacement
 
 def build_optimized_regex(keys: List[str]) -> re.Pattern:
+    # sort longest-first so "do not" matches before "do"
     sorted_keys = sorted(keys, key=len, reverse=True)
     pattern_str = '|'.join(re.escape(k) for k in sorted_keys)
     return re.compile(r'\b(' + pattern_str + r')\b', re.IGNORECASE)

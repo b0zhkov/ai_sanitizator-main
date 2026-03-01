@@ -29,6 +29,7 @@ class RewritingAgent:
 
     def __init__(self):
         self.llm = llm_info.llm
+        # retry up to 3 times on LLM failures (network issues, rate limits, etc.)
         self.chain = (rewriting_prompt | self.llm).with_retry(stop_after_attempt=3)
 
     async def stream_rewrite(self, text: str, analysis: dict):
@@ -56,6 +57,7 @@ class RewritingAgent:
                             if start_match:
                                 found_start_tag = True
                                 buffer = buffer[start_match.end():]
+                            # if >100 chars arrived without a start tag, assume none was sent
                             elif len(buffer) > 100:
                                 found_start_tag = True
                                 buffer = buffer.lstrip()
@@ -69,6 +71,7 @@ class RewritingAgent:
                                     yield final_chunk
                                 return
                             
+                            # keep a small buffer at the end so we don't accidentally yield part of </final_text>
                             safe_threshold = len(end_tag) + 5
                             if len(buffer) > safe_threshold:
                                 to_yield = buffer[:-safe_threshold]

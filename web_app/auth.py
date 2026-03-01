@@ -33,6 +33,7 @@ def hash_password(password: str, salt: str) -> str:
 
 def verify_password(password: str, salt: str, stored_hash: str) -> bool:
     computed = hash_password(password, salt)
+    # timing-safe comparison prevents timing attacks on password hashes
     return hmac.compare_digest(computed, stored_hash)
 
 
@@ -59,6 +60,7 @@ def create_token(user_id: int) -> str:
         hashlib.sha256,
     ).hexdigest()
 
+    # token format: base64(payload).hmac_signature — lightweight alternative to JWT
     return f"{payload_b64}.{signature}"
 
 

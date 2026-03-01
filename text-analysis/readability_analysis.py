@@ -18,10 +18,10 @@ from repetition_detection import tokenize_text_into_sentences
 def analyze_readability_variance(text: str) -> dict:
     paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
 
-    # Fallback: if fewer than 2 paragraphs, try splitting into chunks of 3 sentences
+    # not enough paragraphs? chunk into groups of 3 sentences as a fallback
     if len(paragraphs) <= 1:
         sentences = tokenize_text_into_sentences(text)
-        if len(sentences) >= 6:  # Need at least 2 chunks of 3
+        if len(sentences) >= 6:
             # Chunk sentences into groups of 3
             chunk_size = 3
             paragraphs = [
@@ -65,6 +65,7 @@ def analyze_readability_variance(text: str) -> dict:
         "grade_level_std": round(grade_std, 2),
         "avg_reading_ease": round(avg_ease, 2),
         "avg_grade_level": round(avg_grade, 2),
+        # low std dev = AI-like uniform readability, high = natural variation
         "uniformity_score": "High" if ease_std < 5.0 else "Low"
     }
 

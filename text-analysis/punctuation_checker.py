@@ -10,7 +10,9 @@ while the conversational ones are more typically used by humans.
 import re
 from typing import Dict, Any
 
+# semicolons, colons, bullets, parens — AI defaults to these
 _STRUCTURED_PATTERN = re.compile(r'[;:•()]')
+# dashes, questions, exclamations — humans lean toward these
 _CONVERSATIONAL_PATTERN = re.compile(r'[—?!]')
 
 def analyze_punctuation_structure(text: str) -> Dict[str, Any]:
@@ -29,6 +31,7 @@ def analyze_punctuation_structure(text: str) -> Dict[str, Any]:
     c_count = len(conversational_matches)
 
     total_punct = s_count + c_count
+    # high ratio = more structured/formal = more likely AI
     ratio = (s_count / total_punct) if total_punct > 0 else 0.0
 
     return {

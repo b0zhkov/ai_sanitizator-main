@@ -56,6 +56,7 @@ def _enforce_contractions(text: str) -> str:
         return text
         
     if _contraction_pattern is None:
+        # build a case-insensitive lookup + one big regex sorted longest-first
         _contraction_lookup = {k.lower(): v for k, v in _contraction_pairs.items()}
         _contraction_pattern = shared_utils.build_optimized_regex(list(_contraction_pairs.keys()))
     
@@ -63,6 +64,7 @@ def _enforce_contractions(text: str) -> str:
         key = match.group(0).lower()
         if key not in _contraction_lookup:
             return match.group(0)
+        # keep original capitalization ("Do not" → "Don't", not "don't")
         return shared_utils.preserve_case(match.group(0), _contraction_lookup[key])
         
     return _contraction_pattern.sub(replacer, text)
