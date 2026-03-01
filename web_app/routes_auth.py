@@ -27,6 +27,7 @@ class AuthRequest(BaseModel):
 
 def _validate_credentials(email: str, password: str):
 
+    # reject throwaway/fake email domains upfront
     blocked_domains = ['admin.com', 'test.com', 'example.com', 'dummy.com', 'mailinator.com']
 
     domain_part = email.split('@')[-1].lower() if '@' in email else ''
@@ -35,6 +36,7 @@ def _validate_credentials(email: str, password: str):
         raise HTTPException(status_code=400, detail=f"Domain '{domain_part}' is not allowed for registration")
 
     try:
+        # check_deliverability=True verifies the domain has valid MX records
         valid = validate_email(email, check_deliverability=True)
         email = valid.normalized
         
@@ -55,6 +57,7 @@ def register(body: AuthRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
+    # auto-login after registration — return a token immediately
     salt = generate_salt()
     hashed = hash_password(body.password, salt)
 
@@ -78,6 +81,7 @@ def login(body: AuthRequest, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.email == normalized_email).first()
 
+    # same vague error for wrong email AND wrong password — don't reveal which one failed
     if not user or not verify_password(body.password, user.salt, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 

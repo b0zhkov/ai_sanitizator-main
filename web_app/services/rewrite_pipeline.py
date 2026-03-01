@@ -8,9 +8,7 @@ try:
     from rewriting_agent import rewriting_agent
     from post_humanizer import humanize
 except ImportError:
-    # These might fail if run in isolation or if paths aren't set up yet, 
-    # but the app sets paths in main.py. 
-    # We will assume they are importable when running from main.
+    # safe to skip here — main.py sets up sys.path before these run
     pass
 
 from web_app.routes_history import save_history_entry
@@ -36,6 +34,8 @@ async def rewrite_stream_generator(
     """
     print(f"[TIMING] Start processing...")
 
+    # each yield sends one NDJSON line to the frontend
+    # event types: "stage" (progress), "chunk" (streaming text), "done" (final result), "ai_score"
     yield json.dumps({
         "type": "stage", 
         "data": {
@@ -65,6 +65,7 @@ async def rewrite_stream_generator(
     }) + "\n"
 
     # 3. Streaming Rewrite
+    # accumulate chunks so we can run humanization on the full text after
     rewritten_chunks_gen = []
     t2 = time.time()
     try:
@@ -78,6 +79,7 @@ async def rewrite_stream_generator(
     
     print(f"[TIMING] Rewriting (Streaming) took: {time.time() - t2:.2f}s")
         
+    # reassemble the full rewritten text from streamed chunks
     raw_rewritten_text = "".join(rewritten_chunks_gen)
 
     yield json.dumps({
@@ -102,6 +104,7 @@ async def rewrite_stream_generator(
     )
     print(f"[TIMING] Verification (Metrics) took: {time.time() - t4:.2f}s")
 
+    # append the rewrite itself as the final entry in the changes log
     final_changes = list(changes_list)
     final_changes.append({
         "description": "Applied AI Rewriting (Clean + Rewrite)  ",
@@ -137,6 +140,7 @@ async def rewrite_stream_generator(
     print(f"[TIMING] LLM Critique waited: {time.time() - t5:.2f}s")
     print(f"[TIMING] Total Process took: {time.time() - t0:.2f}s")
 
+    # sent as a separate event after "done" so the UI can show the score with a slight delay
     yield json.dumps({
         "type": "ai_score",
         "data": {

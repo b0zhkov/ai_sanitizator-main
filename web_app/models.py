@@ -15,9 +15,11 @@ class User(Base):
     salt = Column(String(64), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
+    # rate-limiting fields for the rewrite feature
     chars_used_current_session = Column(Integer, default=0)
-    rewrite_lockout_until = Column(DateTime, nullable=True)
+    rewrite_lockout_until = Column(DateTime, nullable=True)  # set when limit is exceeded
 
+    # cascade="all, delete-orphan" — deleting a user wipes their history too
     history_entries = relationship(
         "HistoryEntry", back_populates="user", cascade="all, delete-orphan"
     )
@@ -31,7 +33,7 @@ class HistoryEntry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    action_type = Column(String(20), nullable=False)
+    action_type = Column(String(20), nullable=False)  # "clean" or "rewrite"
     input_text = Column(Text, nullable=False)
     output_text = Column(Text, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

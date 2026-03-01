@@ -6,6 +6,7 @@ from collections import defaultdict
 from fastapi import Request
 
 
+# rewrite feature limits — users can process up to CHAR_LIMIT chars before a cooldown kicks in
 CHAR_LIMIT = 2000
 COOLDOWN_HOURS = 3
 
@@ -31,6 +32,7 @@ def check_rate_limit(user, db, cost: int, limit: int = CHAR_LIMIT):
     
     # Check if this request would exceed limit
     if current_usage + cost > limit:
+        # reset the counter and lock them out — they start fresh after cooldown
         user.rewrite_lockout_until = now + timedelta(hours=COOLDOWN_HOURS)
         user.chars_used_current_session = 0
         db.commit()
@@ -69,6 +71,7 @@ class IPRateLimiter:
         if len(self._hits[ip]) >= self.max_requests:
             return False, "Rate limit exceeded for anonymous usage. Try again later or log in."
         
+        # record this request's timestamp
         self._hits[ip].append(now)
         return True, None
 
@@ -79,4 +82,5 @@ class IPRateLimiter:
             if not self._hits[ip]:
                 del self._hits[ip]
 
+# shared instance — 5 rewrites per minute for users who aren't logged in
 anonymous_rewrite_limiter = IPRateLimiter(max_requests=5, window_seconds=60)

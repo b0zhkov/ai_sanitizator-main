@@ -14,6 +14,7 @@ from web_app.database import get_db
 from web_app.models import User
 
 
+# falls back to a hardcoded secret in dev — production MUST set this env var
 AUTH_SECRET = os.getenv("AUTH_SECRET", "dev-fallback-secret-change-in-production")
 TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 7  # 7 days
 
@@ -23,6 +24,7 @@ def generate_salt() -> str:
 
 
 def hash_password(password: str, salt: str) -> str:
+    # PBKDF2 with 100k iterations — slow on purpose to make brute-force expensive
     return hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
@@ -37,10 +39,12 @@ def verify_password(password: str, salt: str, stored_hash: str) -> bool:
     return hmac.compare_digest(computed, stored_hash)
 
 
+# strips trailing '=' padding for cleaner URLs
 def _b64_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
+# re-adds the padding we stripped in _b64_encode before decoding
 def _b64_decode(text: str) -> bytes:
     padding = 4 - len(text) % 4
     return base64.urlsafe_b64decode(text + "=" * padding)
@@ -51,6 +55,7 @@ def create_token(user_id: int) -> str:
         "user_id": user_id,
         "exp": int(time.time()) + TOKEN_EXPIRY_SECONDS,
     }
+    # compact JSON (no spaces) keeps the token short
     payload_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
     payload_b64 = _b64_encode(payload_bytes)
 
@@ -76,6 +81,7 @@ def decode_token(token: str) -> Optional[int]:
         hashlib.sha256,
     ).hexdigest()
 
+    # step 1: verify the signature hasn't been tampered with
     if not hmac.compare_digest(signature, expected_sig):
         return None
 
@@ -84,12 +90,14 @@ def decode_token(token: str) -> Optional[int]:
     except Exception:
         return None
 
+    # step 2: check expiration
     if payload.get("exp", 0) < time.time():
         return None
 
     return payload.get("user_id")
 
 
+# used as a FastAPI dependency — returns the user or None (doesn't raise)
 def get_optional_user(
     request: Request, db: Session = Depends(get_db)
 ) -> Optional[User]:
@@ -98,6 +106,7 @@ def get_optional_user(
     if not auth_header.startswith("Bearer "):
         return None
 
+    # strip the "Bearer " prefix to get the raw token
     token = auth_header[7:]
     user_id = decode_token(token)
 

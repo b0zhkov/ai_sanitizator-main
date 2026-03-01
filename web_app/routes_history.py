@@ -57,7 +57,7 @@ def save_history_entry(
         output_text=output_text,
     )
     db.add(entry)
-    db.flush()
+    db.flush()  # flush first so the new entry gets an ID and counts toward the limit
 
     _enforce_history_limit(db, user_id)
     db.commit()
@@ -102,6 +102,7 @@ def delete_history_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 
+    # make sure users can only delete their own entries
     if entry.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -122,6 +123,7 @@ def bulk_save_history(
 
     for item in items:
         created = None
+        # try to parse the client-provided timestamp, fall back to now if invalid
         if item.created_at:
             try:
                 created = datetime.fromisoformat(item.created_at)
@@ -137,6 +139,7 @@ def bulk_save_history(
         )
         db.add(entry)
 
+    # flush all entries then trim, instead of trimming per-entry
     db.flush()
     _enforce_history_limit(db, user.id)
     db.commit()

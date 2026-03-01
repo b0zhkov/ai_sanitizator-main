@@ -15,6 +15,7 @@ _DATABASE_URL = f"sqlite:///{_DB_PATH}"
 # check_same_thread=False is needed because FastAPI handles requests across threads
 engine = create_engine(_DATABASE_URL, connect_args={"check_same_thread": False})
 
+# autocommit=False means we control transactions explicitly with db.commit()
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
@@ -23,6 +24,7 @@ class Base(DeclarativeBase):
 
 
 def init_db():
+    # import models here so their tables get registered with Base.metadata
     from web_app.models import User, HistoryEntry  # noqa: F401
     Base.metadata.create_all(bind=engine)
 

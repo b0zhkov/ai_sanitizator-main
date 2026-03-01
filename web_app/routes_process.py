@@ -42,6 +42,7 @@ async def process_text(
             for c in changes
         ]
 
+        # resolve the user from the Authorization header (None if anonymous)
         user = get_optional_user(request, db)
 
         if action == "clean":
@@ -56,6 +57,7 @@ async def process_text(
         elif action == "rewrite":
             t0 = time.time()
 
+            # logged-in users get a char-based rate limit, anonymous users get IP-based
             if user:
                 is_allowed, error_msg = check_rate_limit(user, db, len(clean_text_val))
                 if not is_allowed:
@@ -63,6 +65,7 @@ async def process_text(
                          yield json.dumps({"type": "error", "data": error_msg}) + "\n"
                     return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
+                # charge usage upfront before we start the expensive rewrite
                 update_usage(user, db, len(clean_text_val))
             else:
                 is_allowed, error_msg = anonymous_rewrite_limiter.check(request)
@@ -88,6 +91,7 @@ async def process_text(
 async def upload_file(file: UploadFile = File(...)):
     tmp_path = None
     try:
+        # create the temp file, then close it so save_upload_file can reopen it
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as tmp:
             tmp_path = tmp.name
 
@@ -99,6 +103,7 @@ async def upload_file(file: UploadFile = File(...)):
             
         try:
             content = await asyncio.to_thread(document_loading.load_file_content, tmp_path)
+        # always clean up the temp file, even if content extraction fails
         finally:
             if tmp_path and os.path.exists(tmp_path):
                 os.remove(tmp_path)
