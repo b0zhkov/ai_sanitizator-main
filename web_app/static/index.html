@@ -310,6 +310,28 @@
         .hover-theme-bg:hover {
             background-color: var(--btn-glass-hover);
         }
+
+        /* OCR: locked textarea state */
+        .textarea-locked {
+            opacity: 0.55;
+            cursor: not-allowed;
+            background-image: repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 8px,
+                rgba(100, 116, 139, 0.04) 8px,
+                rgba(100, 116, 139, 0.04) 16px
+            );
+        }
+
+        /* OCR: image preview thumbnail */
+        .ocr-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 0.75rem;
+            border: 1px solid var(--glass-border);
+        }
     </style>
 </head>
 
@@ -369,6 +391,25 @@
                         Upload Document
                         <input accept=".txt,.docx,.pdf,.html" class="hidden" id="fileInput" type="file" />
                     </label>
+
+                    <!-- Image upload button -->
+                    <label
+                        class="group relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-theme-primary transition-all duration-300 bg-theme-navbar border border-theme-divider rounded-xl hover:bg-white/10 hover:text-theme-heading cursor-pointer hover:border-purple-500/20 overflow-hidden shadow-sm">
+                        <span
+                            class="material-symbols-outlined text-[20px] mr-2 text-purple-400/80 group-hover:scale-110 transition-transform">image</span>
+                        Upload Image
+                        <input accept="image/*" class="hidden" id="ocrFileInput" type="file" />
+                    </label>
+
+                    <!-- Camera capture button -->
+                    <label
+                        class="group relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-theme-primary transition-all duration-300 bg-theme-navbar border border-theme-divider rounded-xl hover:bg-white/10 hover:text-theme-heading cursor-pointer hover:border-emerald-500/20 overflow-hidden shadow-sm">
+                        <span
+                            class="material-symbols-outlined text-[20px] mr-2 text-emerald-400/80 group-hover:scale-110 transition-transform">photo_camera</span>
+                        <span class="hidden sm:inline">Camera</span>
+                        <input accept="image/*" capture="environment" class="hidden" id="ocrCameraInput" type="file"
+                            onchange="if(this.files[0]) OCR.handleFile(this.files[0])" />
+                    </label>
                 </div>
                 <button
                     class="text-xs font-medium text-theme-muted hover:text-red-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5 tracking-wide"
@@ -376,6 +417,29 @@
                     <span class="material-symbols-outlined text-[16px]">delete</span>
                     Clear Canvas
                 </button>
+            </div>
+
+            <!-- OCR image preview (hidden by default) -->
+            <div class="hidden mb-4 flex items-center gap-4 bg-theme-navbar border border-theme-divider rounded-xl p-3 transition-all" id="ocrPreview">
+                <img class="ocr-thumb" id="ocrPreviewImg" src="" alt="Uploaded image preview" />
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-medium text-theme-primary truncate" id="ocrPreviewName">image.png</p>
+                    <p class="text-[11px] text-theme-muted flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px] text-purple-400">lock</span>
+                        Text area locked — text sourced from image
+                    </p>
+                </div>
+                <button
+                    class="flex-shrink-0 text-theme-muted hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-white/5"
+                    onclick="OCR.clearPreview(); clearText();" title="Remove image">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <!-- OCR loading status (hidden by default) -->
+            <div class="hidden mb-4 flex items-center gap-3 bg-theme-navbar border border-theme-divider rounded-xl px-4 py-3" id="ocrStatus">
+                <div class="loader ease-linear rounded-full border-2 border-theme-divider border-t-purple-400 h-4 w-4"></div>
+                <span class="text-xs text-purple-300 font-medium tracking-wide animate-pulse">Extracting text from image…</span>
             </div>
 
             <div class="relative group">
@@ -403,6 +467,10 @@
                             <div class="flex items-center gap-1 hover:text-theme-primary transition-colors cursor-help"
                                 title=".txt files">
                                 <span class="material-symbols-outlined text-[16px]">description</span> .TXT
+                            </div>
+                            <div class="flex items-center gap-1 hover:text-theme-primary transition-colors cursor-help"
+                                title="Image files (OCR)">
+                                <span class="material-symbols-outlined text-[16px]">image</span> .IMG
                             </div>
                         </div>
                     </div>
@@ -686,6 +754,7 @@
     <script src="/static/auth.js"></script>
     <script src="/static/history.js"></script>
     <script src="/static/word_count.js"></script>
+    <script src="/static/ocr.js"></script>
 </body>
 
 </html>

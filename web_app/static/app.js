@@ -415,11 +415,13 @@ function reset() {
     switchTab('text');
     _originalText = '';
     _rewrittenText = '';
+    if (typeof OCR !== 'undefined') OCR.clearPreview();
 }
 
 function clearText() {
     document.getElementById('rawText').value = '';
     document.getElementById('rawText').dispatchEvent(new Event('input'));
+    if (typeof OCR !== 'undefined') OCR.clearPreview();
 }
 
 async function copyResult() {

@@ -26,6 +26,7 @@ except ImportError as e:
 from web_app.database import init_db
 from web_app.routes_auth import router as auth_router
 from web_app.routes_history import router as history_router
+from web_app.routes_ocr import router as ocr_router
 from web_app.routes_process import router as process_router
 
 # lifespan runs once on startup (before the yield) and once on shutdown (after)
@@ -51,6 +52,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(process_router)
+app.include_router(ocr_router)
 
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 
