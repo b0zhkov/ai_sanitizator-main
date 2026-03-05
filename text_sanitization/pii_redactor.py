@@ -35,7 +35,6 @@ def redact_pii(text: str) -> str:
     def replace_ip(match):
         ip_str = match.group(0)
         try:
-            # inet_aton validates it's actually an IP, not just four numbers with dots
             socket.inet_aton(ip_str)
             return "[IP]"
         except socket.error:
