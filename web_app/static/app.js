@@ -39,8 +39,10 @@ fileInput.addEventListener('change', async (e) => {
         });
 
         if (!response.ok) {
-            const errorElem = await response.json();
-            throw new Error(errorElem.detail || 'Upload failed');
+            const errorBody = await response.text();
+            let errorMsg = 'Upload failed';
+            try { const parsed = JSON.parse(errorBody); errorMsg = parsed.detail || errorMsg; } catch (_) { errorMsg = errorBody || errorMsg; }
+            throw new Error(errorMsg);
         }
 
         const data = await response.json();
@@ -78,8 +80,10 @@ async function processText(action) {
         });
 
         if (!response.ok) {
-            const errorElem = await response.json();
-            throw new Error(errorElem.detail || 'Processing failed');
+            const errorBody = await response.text();
+            let errorMsg = 'Processing failed';
+            try { const parsed = JSON.parse(errorBody); errorMsg = parsed.detail || errorMsg; } catch (_) { errorMsg = errorBody || errorMsg; }
+            throw new Error(errorMsg);
         }
 
         if (action === 'rewrite') {

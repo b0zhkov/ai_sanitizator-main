@@ -76,5 +76,4 @@ async def ocr_image(file: UploadFile = File(...)):
     return JSONResponse({
         "content": text,
         "engine": "google_vision",
-        "language_hint": "en",
     })

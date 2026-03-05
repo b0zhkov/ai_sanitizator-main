@@ -63,13 +63,9 @@ def extract_text_from_image_bytes(image_bytes: bytes) -> str:
     client = _get_client()
 
     image = vision.Image(content=image_bytes)
-    image_context = vision.ImageContext(language_hints=["en"])
 
     try:
-        response = client.document_text_detection(
-            image=image,
-            image_context=image_context,
-        )
+        response = client.document_text_detection(image=image)
     except Exception as exc:
         raise OCRError(f"Vision API request failed: {exc}") from exc
 

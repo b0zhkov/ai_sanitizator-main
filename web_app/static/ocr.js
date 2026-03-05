@@ -31,8 +31,10 @@ const OCR = {
             });
 
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'OCR failed');
+                const errorBody = await response.text();
+                let errorMsg = 'OCR failed';
+                try { const parsed = JSON.parse(errorBody); errorMsg = parsed.detail || errorMsg; } catch (_) { errorMsg = errorBody || errorMsg; }
+                throw new Error(errorMsg);
             }
 
             const data = await response.json();
