@@ -65,14 +65,38 @@ def extract_text_from_image_bytes(image_bytes: bytes) -> str:
     image = vision.Image(content=image_bytes)
 
     try:
-        response = client.document_text_detection(image=image)
+        response_doc = client.document_text_detection(image=image)
+        _check_api_error(response_doc)
+        text = _extract_text_from_response(response_doc)
+        if text:
+            return text
     except Exception as exc:
-        raise OCRError(f"Vision API request failed: {exc}") from exc
+        if isinstance(exc, OCRError):
+            raise
+        logger.warning(f"document_text_detection failed: {exc}")
 
-    # the API may attach an error object to the response itself
+    # Fallback attempt: text_detection (better for sparse text like single characters or logos)
+    try:
+        response_std = client.text_detection(image=image)
+        _check_api_error(response_std)
+        text = _extract_text_from_response(response_std)
+        if text:
+            return text
+    except Exception as exc:
+        if isinstance(exc, OCRError):
+            raise
+        logger.error(f"text_detection fallback failed: {exc}")
+        raise OCRError(f"Vision API fallback request failed: {exc}") from exc
+
+    return ""
+
+def _check_api_error(response):
+    """Helper to check for API-attached errors."""
     if response.error and response.error.message:
         raise OCRError(f"Vision API error: {response.error.message}")
 
+def _extract_text_from_response(response) -> str:
+    """Helper to extract text from a Vision API response."""
     # prefer the structured full-text annotation (best for documents)
     if response.full_text_annotation and response.full_text_annotation.text:
         return response.full_text_annotation.text.strip()
