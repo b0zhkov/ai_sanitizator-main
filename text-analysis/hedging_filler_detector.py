@@ -22,7 +22,6 @@ import csv
 import clean_text_getter
 
 import _paths  # noqa: E402 — centralised path setup
-import shared_nlp
 
 nlp = None
 matcher = None
@@ -36,6 +35,7 @@ def _initialize_spacy():
     if nlp is not None:
         return
 
+    import shared_nlp  # lazy import
     from spacy.matcher import PhraseMatcher
 
     nlp = shared_nlp.get_nlp_full()

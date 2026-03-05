@@ -6,7 +6,6 @@ such as email addresses, URLs, and IP addresses.
 """
 import re
 import socket
-import shared_nlp
 
 _IPV4_REGEX = re.compile(
     r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
@@ -15,7 +14,9 @@ _IPV4_REGEX = re.compile(
 def redact_pii(text: str) -> str:
     if not text:
         return ""
-        
+
+    import shared_nlp  # lazy import — avoids loading spacy at module level
+
     # spacy's built-in token attributes handle emails and URLs out of the box
     nlp = shared_nlp.get_nlp_light()
     doc = nlp(text)

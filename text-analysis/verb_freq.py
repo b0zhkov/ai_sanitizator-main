@@ -10,9 +10,6 @@ It achieves this by:
 The end goal is to encourage more natural and varied vocabulary.
 """
 from typing import Dict, Any
-import spacy
-
-import shared_nlp
 
 AI_FAVORED_VERBS = {
     "delve", "underscore", "illuminate", "facilitate", "bolster", 
@@ -26,6 +23,7 @@ def analyze_verb_frequency(text: str) -> Dict[str, Any]:
     if not text or not text.strip():
         return _build_empty_result()
 
+    import shared_nlp  # lazy import
     nlp = shared_nlp.get_nlp_tagger()
     doc = nlp(text)
     

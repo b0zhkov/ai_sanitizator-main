@@ -35,7 +35,7 @@ def _max_image_bytes() -> int:
 
 @router.post("/api/ocr")
 async def ocr_image(file: UploadFile = File(...)):
-    # --- MIME type check ---
+
     if file.content_type not in _ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=400,
@@ -45,7 +45,6 @@ async def ocr_image(file: UploadFile = File(...)):
             ),
         )
 
-    # --- read bytes & size check ---
     image_bytes = await file.read()
     size_mb = len(image_bytes) / (1024 * 1024)
     max_bytes = _max_image_bytes()
@@ -59,7 +58,6 @@ async def ocr_image(file: UploadFile = File(...)):
 
     logger.info("OCR request — file=%s  size=%.2f MB", file.filename, size_mb)
 
-    # --- call Vision API ---
     t0 = time.time()
     try:
         text = extract_text_from_image_bytes(image_bytes)

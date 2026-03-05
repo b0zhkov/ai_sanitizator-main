@@ -14,17 +14,18 @@ The end goal is to highlight repetitive phrasing that needs variation.
 from __future__ import annotations
 
 from collections import Counter
-import shared_nlp
 
 import _paths
 
 
 def tokenize_text(text: str) -> list[str]:
+    import shared_nlp  # lazy import
     nlp = shared_nlp.get_nlp_light()
     doc = nlp(text)
     return [token.text for token in doc if not token.is_punct and not token.is_space]
 
 def tokenize_text_into_sentences(text: str) -> list[str]:
+    import shared_nlp  # lazy import
     nlp = shared_nlp.get_nlp_light()
     doc = nlp(text)
     return [sent.text for sent in doc.sents]

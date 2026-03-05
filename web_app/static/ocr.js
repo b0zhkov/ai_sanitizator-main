@@ -6,20 +6,9 @@
  */
 
 const OCR = {
-    /** Currently displayed object-URL (revoked on clear). */
     _objectUrl: null,
-
-    /** Whether an OCR request is in-flight. */
     _loading: false,
 
-    /* ------------------------------------------------------------------ */
-    /*  Public API                                                        */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * Main entry — validate the file, show a preview, call /api/ocr,
-     * and pour the extracted text into the textarea.
-     */
     async handleFile(file) {
         if (!file || !file.type.startsWith('image/')) return;
 
@@ -62,12 +51,7 @@ const OCR = {
         }
     },
 
-    /* ------------------------------------------------------------------ */
-    /*  Preview                                                           */
-    /* ------------------------------------------------------------------ */
-
     setPreview(file) {
-        // revoke previous URL if any
         if (this._objectUrl) URL.revokeObjectURL(this._objectUrl);
 
         this._objectUrl = URL.createObjectURL(file);
@@ -97,14 +81,9 @@ const OCR = {
 
         this.unlockTextarea();
 
-        // also reset the file input so the same image can be re-selected
         const input = document.getElementById('ocrFileInput');
         if (input) input.value = '';
     },
-
-    /* ------------------------------------------------------------------ */
-    /*  Textarea lock / unlock                                            */
-    /* ------------------------------------------------------------------ */
 
     lockTextarea() {
         const ta = document.getElementById('rawText');
@@ -120,17 +99,12 @@ const OCR = {
         ta.classList.remove('textarea-locked');
     },
 
-    /* ------------------------------------------------------------------ */
-    /*  Loading state                                                     */
-    /* ------------------------------------------------------------------ */
-
     setLoading(on) {
         this._loading = on;
 
         const status = document.getElementById('ocrStatus');
         if (status) status.classList.toggle('hidden', !on);
 
-        // disable / enable the two action buttons while OCR is running
         document.querySelectorAll('#input-panel button[onclick^="processText"]')
             .forEach(btn => {
                 btn.disabled = on;
@@ -138,10 +112,6 @@ const OCR = {
                 btn.classList.toggle('pointer-events-none', on);
             });
     },
-
-    /* ------------------------------------------------------------------ */
-    /*  Helpers                                                           */
-    /* ------------------------------------------------------------------ */
 
     _showWarning(message) {
         const status = document.getElementById('ocrStatus');
@@ -155,12 +125,8 @@ const OCR = {
     },
 };
 
-/* -------------------------------------------------------------------- */
-/*  Event wiring                                                        */
-/* -------------------------------------------------------------------- */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- File-input change ---
     const fileInput = document.getElementById('ocrFileInput');
     if (fileInput) {
         fileInput.addEventListener('change', (e) => {
@@ -182,6 +148,5 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-        // if no image found → normal paste proceeds untouched
     });
 });

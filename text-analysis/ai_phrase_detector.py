@@ -12,9 +12,6 @@ The end goal is to catch specific "fingerprints" of AI writing that statistical 
 import csv
 import os
 
-import shared_nlp
-from spacy.matcher import PhraseMatcher
-
 _nlp = None
 _matcher = None
 
@@ -24,6 +21,9 @@ def _initialize_matcher():
     global _nlp, _matcher
     if _matcher is not None:
         return
+
+    import shared_nlp  # lazy import
+    from spacy.matcher import PhraseMatcher
 
     _nlp = shared_nlp.get_nlp_light()
     # attr="LOWER" makes matching case-insensitive
