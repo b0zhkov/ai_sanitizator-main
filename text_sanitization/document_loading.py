@@ -1,8 +1,6 @@
 """
 The document loading module handles the importing for various file formats.
 
-I have combined the importing logic into a single file to make it easier to maintain and follow DRY.
-
 It achieves this by:
 1. Mapping file extensions to specific loader functions (.txt, .docx, .html, .pdf).
 2. utilizing specialized libraries like BeautifulSoup, docx2txt, and pypdf to extract text.
@@ -11,9 +9,6 @@ It achieves this by:
 The end goal is to abstract away the file reading complexity and return a clean string.
 """
 import os
-from bs4 import BeautifulSoup
-import docx2txt
-import fitz
 
 def _load_txt(file_path: str) -> str:
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -21,16 +16,19 @@ def _load_txt(file_path: str) -> str:
 
 
 def _load_docx(file_path: str) -> str:
+    import docx2txt
     return docx2txt.process(file_path)
 
 
 def _load_html(file_path: str) -> str:
+    from bs4 import BeautifulSoup
     with open(file_path, 'r', encoding='utf-8') as f:
         soup = BeautifulSoup(f.read(), 'html.parser')
         return soup.get_text(separator='\n', strip=True)
 
 
 def _load_pdf(file_path: str) -> str:
+    import fitz
     doc = fitz.open(file_path)
     pages = [page.get_text() or '' for page in doc]
     doc.close()
