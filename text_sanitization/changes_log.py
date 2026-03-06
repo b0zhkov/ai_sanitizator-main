@@ -10,7 +10,6 @@ import markdown_stripper
 import profanity_filter
 import emoji_cleaner
 
-# simple record of what each sanitization step did to the text
 Change = namedtuple('Change', ['description', 'text_before', 'text_after'])
 
 def apply_regex_changes(text, regex_patterns):
@@ -36,8 +35,7 @@ def apply_regex_changes(text, regex_patterns):
 
 def build_changes_log(text):
     changes = []
-    
-    # phase 1: structural cleanup — order matters (strip HTML before markdown, etc.)
+
     transformations = [
         ("Stripped HTML Tags", html_cleaner.clean_html),
         ("Stripped Markdown Syntax", markdown_stripper.strip_markdown),
@@ -58,7 +56,6 @@ def build_changes_log(text):
     regex_changes, text = apply_regex_changes(text, strip_inv_chars.PATTERNS)
     changes.extend(regex_changes)
     
-    # phase 2: content-level sanitization — runs after invisible chars are already stripped
     post_regex_transformations = [
         ("Redacted PII (Emails, URLs, IPs)", pii_redactor.redact_pii),
         ("Removed Emojis", emoji_cleaner.remove_emojis),

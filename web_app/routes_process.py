@@ -65,7 +65,7 @@ async def process_text(
                          yield json.dumps({"type": "error", "data": error_msg}) + "\n"
                     return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
-                # charge usage upfront before we start the expensive rewrite
+                # charge usage upfront before we start the rewrite
                 update_usage(user, db, len(clean_text_val))
             else:
                 is_allowed, error_msg = anonymous_rewrite_limiter.check(request)

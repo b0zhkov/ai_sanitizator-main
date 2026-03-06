@@ -1,9 +1,11 @@
 """
-Google Cloud Vision OCR service.
+Google Cloud Vision OCR service (REST transport).
 
 Reads credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON_B64 env var,
-builds an ImageAnnotatorClient in-memory (no filesystem writes — Vercel-safe),
-and exposes a single function to extract text from raw image bytes.
+authenticates via google-auth, and calls the Vision REST API directly
+with httpx — no grpc dependency (Vercel-safe).
+
+Exposes a single function to extract text from raw image bytes.
 """
 
 import base64
@@ -12,13 +14,14 @@ import logging
 import os
 from functools import lru_cache
 
-from google.cloud import vision
+import httpx
+from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
-# scopes required by the Vision API
 _VISION_SCOPES = ["https://www.googleapis.com/auth/cloud-vision"]
+_VISION_URL = "https://vision.googleapis.com/v1/images:annotate"
 
 
 class OCRError(Exception):
@@ -26,8 +29,8 @@ class OCRError(Exception):
 
 
 @lru_cache(maxsize=1)
-def _get_client() -> vision.ImageAnnotatorClient:
-    """Build and cache a Vision API client from base64-encoded credentials."""
+def _get_credentials() -> service_account.Credentials:
+    """Build and cache Google credentials from base64-encoded service-account JSON."""
 
     b64_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON_B64")
     if not b64_creds:
@@ -42,67 +45,109 @@ def _get_client() -> vision.ImageAnnotatorClient:
     except Exception as exc:
         raise OCRError(f"Failed to decode credentials: {exc}") from exc
 
-    credentials = service_account.Credentials.from_service_account_info(
+    return service_account.Credentials.from_service_account_info(
         info, scopes=_VISION_SCOPES
     )
 
-    return vision.ImageAnnotatorClient(credentials=credentials)
+
+def _get_access_token() -> str:
+    """Return a valid access token, refreshing if needed."""
+    creds = _get_credentials()
+    if not creds.valid:
+        creds.refresh(Request())
+    return creds.token
+
+
+def _call_vision_api(image_b64: str, feature_type: str) -> dict:
+    """Send a single-feature annotate request and return the response dict."""
+
+    payload = {
+        "requests": [
+            {
+                "image": {"content": image_b64},
+                "features": [{"type": feature_type}],
+            }
+        ]
+    }
+
+    token = _get_access_token()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    resp = httpx.post(_VISION_URL, json=payload, headers=headers, timeout=60)
+
+    if resp.status_code != 200:
+        raise OCRError(
+            f"Vision API HTTP {resp.status_code}: {resp.text}"
+        )
+
+    data = resp.json()
+    responses = data.get("responses", [])
+    if not responses:
+        raise OCRError("Vision API returned no responses")
+
+    annotation = responses[0]
+    if "error" in annotation:
+        err = annotation["error"]
+        raise OCRError(
+            f"Vision API error {err.get('code')}: {err.get('message')}"
+        )
+
+    return annotation
+
+
+def _extract_text_from_annotation(annotation: dict) -> str:
+    """Pull text from a Vision API annotation dict."""
+
+    # Prefer fullTextAnnotation (best for documents / dense text)
+    full = annotation.get("fullTextAnnotation", {})
+    if full.get("text"):
+        return full["text"].strip()
+
+    # Fallback: first entry in textAnnotations
+    text_anns = annotation.get("textAnnotations", [])
+    if text_anns:
+        return text_anns[0].get("description", "").strip()
+
+    return ""
 
 
 def extract_text_from_image_bytes(image_bytes: bytes) -> str:
     """
     Send raw image bytes to Google Cloud Vision and return the extracted text.
 
-    Uses document_text_detection (optimised for dense text / documents).
-    Falls back to text_annotations[0].description when full_text_annotation
-    is empty.  Returns an empty string when no text is detected.
+    Uses DOCUMENT_TEXT_DETECTION (optimised for dense text / documents).
+    Falls back to TEXT_DETECTION when the first attempt returns no text.
+    Returns an empty string when no text is detected.
 
     Raises OCRError on API-level failures.
     """
 
-    client = _get_client()
+    image_b64 = base64.b64encode(image_bytes).decode("ascii")
 
-    image = vision.Image(content=image_bytes)
-
+    # Primary attempt — document text detection
     try:
-        response_doc = client.document_text_detection(image=image)
-        _check_api_error(response_doc)
-        text = _extract_text_from_response(response_doc)
+        annotation = _call_vision_api(image_b64, "DOCUMENT_TEXT_DETECTION")
+        text = _extract_text_from_annotation(annotation)
         if text:
             return text
     except Exception as exc:
         if isinstance(exc, OCRError):
             raise
-        logger.warning(f"document_text_detection failed: {exc}")
+        logger.warning("DOCUMENT_TEXT_DETECTION failed: %s", exc)
 
-    # Fallback attempt: text_detection (better for sparse text like single characters or logos)
+    # Fallback — plain text detection (better for sparse text)
     try:
-        response_std = client.text_detection(image=image)
-        _check_api_error(response_std)
-        text = _extract_text_from_response(response_std)
+        annotation = _call_vision_api(image_b64, "TEXT_DETECTION")
+        text = _extract_text_from_annotation(annotation)
         if text:
             return text
     except Exception as exc:
         if isinstance(exc, OCRError):
             raise
-        logger.error(f"text_detection fallback failed: {exc}")
+        logger.error("TEXT_DETECTION fallback failed: %s", exc)
         raise OCRError(f"Vision API fallback request failed: {exc}") from exc
-
-    return ""
-
-def _check_api_error(response):
-    """Helper to check for API-attached errors."""
-    if response.error and response.error.message:
-        raise OCRError(f"Vision API error: {response.error.message}")
-
-def _extract_text_from_response(response) -> str:
-    """Helper to extract text from a Vision API response."""
-    # prefer the structured full-text annotation (best for documents)
-    if response.full_text_annotation and response.full_text_annotation.text:
-        return response.full_text_annotation.text.strip()
-
-    # fallback: first entry in the simple text_annotations list
-    if response.text_annotations:
-        return response.text_annotations[0].description.strip()
 
     return ""
